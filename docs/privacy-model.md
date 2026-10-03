@@ -2,7 +2,7 @@
 
 UniFetch's local-first goal is processing media users can already access without routing metadata or media through UniFetch-controlled proxy servers. This milestone performs no real platform requests; its metadata is bundled and its generated media is served locally by the application host.
 
-The tool requests no usernames, passwords, cookies, exported browser sessions or authentication tokens. It never collects, uploads, serializes or stores credentials. WebRuntime requests omit credentials and request no-store; cross-origin requests are disallowed in this runtime.
+The tool requests no usernames, passwords, cookies, exported browser sessions or authentication tokens. It never collects, uploads, serializes or stores credentials. Ordinary WebRuntime requests omit credentials and request no-store; cross-origin requests are disallowed in this runtime. The optional M4B origin-session capability can use browser-owned same-origin credentials and internal CSRF injection, without exporting cookies or persisting tokens. It rejects inaccessible cross-origin session context and is not wired into the production UI.
 
 ## Storage
 

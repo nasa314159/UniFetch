@@ -136,21 +136,38 @@ export function parseSupportedUrl(input: string): {
 }
 export interface RuntimeRequest {
   url: string;
-  method?: 'GET' | 'HEAD';
+  method?: 'GET' | 'HEAD' | 'POST';
+  headers?: Record<string, string>;
+  body?: string;
 }
 export interface RuntimeResponse {
   status: number;
   body: Uint8Array;
   contentType?: string;
+  redirected?: boolean;
 }
 export interface RuntimeCapabilities {
   downloads: boolean;
   crossOriginRequests: boolean;
 }
+/** Runtime-owned session context. No credentials are returned to callers. */
+export interface RuntimeSessionRequest extends RuntimeRequest {
+  csrfHeader?: string;
+}
+export interface RuntimeSession {
+  request(input: RuntimeSessionRequest): Promise<RuntimeResponse>;
+}
+export interface RuntimeSessionOptions {
+  csrfCookieName: string;
+}
 export interface RuntimeAdapter {
   request(input: RuntimeRequest): Promise<RuntimeResponse>;
   download(asset: MediaAsset): Promise<void>;
   capabilities(): RuntimeCapabilities;
+  prepareOriginSession?(
+    origin: string,
+    options: RuntimeSessionOptions,
+  ): Promise<RuntimeSession>;
 }
 export interface ResolveContext {
   runtime: RuntimeAdapter;
