@@ -1,0 +1,26 @@
+{
+  "name": "@unifetch/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "dependencies": {
+    "@unifetch/core": "workspace:*",
+    "@unifetch/meta-resolver": "workspace:*",
+    "@unifetch/runtime-web": "workspace:*",
+    "@unifetch/share-target": "workspace:*",
+    "vue": "^3.5.22",
+    "vue-router": "^4.6.3",
+    "pinia": "^3.0.3",
+    "@unifetch/downloader": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^6.4.1",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "vite-plugin-pwa": "^1.1.0"
+  }
+}

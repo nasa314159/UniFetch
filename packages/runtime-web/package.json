@@ -1,0 +1,13 @@
+{
+  "name": "@unifetch/runtime-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@unifetch/core": "workspace:*",
+    "@unifetch/downloader": "workspace:*"
+  }
+}

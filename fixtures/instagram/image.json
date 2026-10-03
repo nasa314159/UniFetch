@@ -1,0 +1,30 @@
+{
+  "post": {
+    "platform": "instagram",
+    "id": "unifetch-demo-image",
+    "canonicalUrl": "https://www.instagram.com/p/unifetch-demo-image/",
+    "author": {
+      "username": "unifetch_demo_studio",
+      "displayName": "UniFetch Demo Studio"
+    },
+    "caption": "A little space to breathe. Original shapes, imagined horizons.",
+    "publishedAt": "2026-01-01T12:00:00Z",
+    "assets": [
+      {
+        "id": "image-1",
+        "type": "image",
+        "url": "/demo/art-1.svg",
+        "mimeType": "image/svg+xml",
+        "width": 1080,
+        "height": 1080,
+        "suggestedFilename": "unifetch-art-1.svg"
+      }
+    ]
+  },
+  "trace": {
+    "processedLocally": true,
+    "remoteProxyUsed": false,
+    "credentialsExported": false,
+    "network": []
+  }
+}

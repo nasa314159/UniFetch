@@ -1,0 +1,59 @@
+{
+  "post": {
+    "platform": "instagram",
+    "id": "unifetch-demo-carousel",
+    "canonicalUrl": "https://www.instagram.com/p/unifetch-demo-carousel/",
+    "author": {
+      "username": "unifetch_demo_studio",
+      "displayName": "UniFetch Demo Studio"
+    },
+    "caption": "Four small studies in light, color, and motion. Made for the UniFetch demo.",
+    "publishedAt": "2026-01-01T12:00:00Z",
+    "assets": [
+      {
+        "id": "image-1",
+        "type": "image",
+        "url": "/demo/art-1.svg",
+        "mimeType": "image/svg+xml",
+        "width": 1080,
+        "height": 1080,
+        "suggestedFilename": "unifetch-art-1.svg"
+      },
+      {
+        "id": "image-2",
+        "type": "image",
+        "url": "/demo/art-2.svg",
+        "mimeType": "image/svg+xml",
+        "width": 1080,
+        "height": 1080,
+        "suggestedFilename": "unifetch-art-2.svg"
+      },
+      {
+        "id": "video-1",
+        "type": "video",
+        "url": "/demo/motion.mp4",
+        "mimeType": "video/mp4",
+        "width": 720,
+        "height": 720,
+        "durationMs": 3000,
+        "thumbnailUrl": "/demo/art-3.svg",
+        "suggestedFilename": "unifetch-motion.mp4"
+      },
+      {
+        "id": "image-4",
+        "type": "image",
+        "url": "/demo/art-4.svg",
+        "mimeType": "image/svg+xml",
+        "width": 1080,
+        "height": 1080,
+        "suggestedFilename": "unifetch-art-4.svg"
+      }
+    ]
+  },
+  "trace": {
+    "processedLocally": true,
+    "remoteProxyUsed": false,
+    "credentialsExported": false,
+    "network": []
+  }
+}

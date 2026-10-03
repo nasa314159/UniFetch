@@ -1,0 +1,32 @@
+{
+  "post": {
+    "platform": "instagram",
+    "id": "unifetch-demo-reel",
+    "canonicalUrl": "https://www.instagram.com/reel/unifetch-demo-reel/",
+    "author": {
+      "username": "unifetch_demo_studio",
+      "displayName": "UniFetch Demo Studio"
+    },
+    "caption": "A moment in motion. A locally generated demo, from beginning to end.",
+    "publishedAt": "2026-01-01T12:00:00Z",
+    "assets": [
+      {
+        "id": "reel-1",
+        "type": "video",
+        "url": "/demo/reel.mp4",
+        "mimeType": "video/mp4",
+        "width": 540,
+        "height": 960,
+        "durationMs": 3000,
+        "thumbnailUrl": "/demo/art-4.svg",
+        "suggestedFilename": "unifetch-reel.mp4"
+      }
+    ]
+  },
+  "trace": {
+    "processedLocally": true,
+    "remoteProxyUsed": false,
+    "credentialsExported": false,
+    "network": []
+  }
+}
