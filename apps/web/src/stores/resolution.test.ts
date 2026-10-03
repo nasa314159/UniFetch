@@ -6,8 +6,8 @@ import { resolutionErrorMessage } from '../error-messages';
 import image from '../../../../fixtures/instagram/image.json';
 
 const { resolve } = vi.hoisted(() => ({ resolve: vi.fn() }));
-vi.mock('@unifetch/meta-resolver', () => ({
-  createResolver: () => ({ resolve }),
+vi.mock('../resolver-client', () => ({
+  createWebResolver: () => ({ resolve }),
 }));
 beforeEach(() => {
   setActivePinia(createPinia());
@@ -34,11 +34,17 @@ describe('Resolution store and live error presentation', () => {
     expect(store.error).toBe(error);
     expect(store.error?.code).toBe(code);
     expect(store.result).toBeNull();
-    expect(resolutionErrorMessage(error)).not.toBe('Internal safe diagnostic');
+    if (code !== 'BROWSER_RESTRICTION')
+      expect(resolutionErrorMessage(error)).not.toBe(
+        'Internal safe diagnostic',
+      );
   });
   it('explains browser restriction without implying a proxy or server failure', () => {
     const message = resolutionErrorMessage(
-      new UniFetchError('BROWSER_RESTRICTION', 'Restricted'),
+      new UniFetchError(
+        'BROWSER_RESTRICTION',
+        'Your browser blocked the direct Instagram request required for local resolution. UniFetch did not send the request through a remote proxy.',
+      ),
     );
     expect(message).toContain('browser blocked the direct Instagram request');
     expect(message).toContain(

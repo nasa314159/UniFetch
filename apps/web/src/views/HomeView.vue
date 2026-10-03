@@ -58,7 +58,7 @@ watch(
       Save media you<br class="desktop-break" />
       can already access<span class="period">.</span>
     </h1>
-    <p class="tagline">Locally. Transparently.</p>
+    <p class="tagline">Direct media. Transparently.</p>
     <p class="intro">
       One link. A clear view of your media.<br />Designed to keep you in
       control.
@@ -169,9 +169,10 @@ watch(
     <div>
       <h2>A little more transparency.</h2>
       <p>
-        Demo buttons use fictional posts and original local media. Other post
-        and Reel links attempt direct Instagram resolution, which browsers may
-        block. Nothing you paste is stored, and there is no remote proxy.
+        Demo buttons use fictional posts and original local media. Other public
+        post and Reel URLs are sent to the UniFetch Resolver for metadata. Media
+        files are not proxied through UniFetch, and no resolution history is
+        stored.
       </p>
     </div>
   </aside>

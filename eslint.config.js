@@ -2,7 +2,14 @@ import js from '@eslint/js';
 import ts from 'typescript-eslint';
 import vue from 'eslint-plugin-vue';
 export default ts.config(
-  { ignores: ['**/dist/**', '**/node_modules/**', '**/dev-dist/**'] },
+  {
+    ignores: [
+      '**/dist/**',
+      '**/node_modules/**',
+      '**/dev-dist/**',
+      '**/.wrangler/**',
+    ],
+  },
   js.configs.recommended,
   ...ts.configs.recommended,
   ...vue.configs['flat/recommended'],

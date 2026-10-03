@@ -33,6 +33,8 @@ export interface NetworkRecord {
 export interface ResolutionTrace {
   processedLocally: boolean;
   remoteProxyUsed: boolean;
+  metadataResolverUsed?: boolean;
+  mediaProxyUsed?: boolean;
   credentialsExported: boolean;
   network: NetworkRecord[];
 }
@@ -196,3 +198,8 @@ export class ResolverRegistry {
     return resolver.resolve(resolver.normalize(url), { runtime: this.runtime });
   }
 }
+
+export {
+  resolverApiResponseSchema,
+  type ResolverApiResponse,
+} from './resolver-api';

@@ -1,61 +1,51 @@
 # Architecture
 
-The pnpm workspace builds a static Vue 3 PWA. There is no backend or media proxy.
+The pnpm workspace contains a static Vue PWA and a separate metadata-only Cloudflare Worker. Cloudflare-specific code stays in `apps/resolver-worker`; core and resolver packages do not depend on Wrangler.
 
-## Boundaries
+## Package boundaries
 
-`core` owns domain types, the error system, URL validation/normalization, `RuntimeAdapter`, `Resolver` and `ResolverRegistry`. Zod validates input strings before URL parsing. Only explicitly recognized HTTP(S) hosts are accepted; credentials and custom ports are rejected. Known tracking parameters and fragments are removed; unknown functional query parameters remain.
+`core` owns domain types, typed errors, exact supported-host validation/normalization, runtime/resolver contracts and the narrow Zod Resolver API schema. Userinfo and custom ports are rejected. Known tracking parameters/fragments are removed; unknown functional query parameters are retained by general normalization.
 
-`meta-resolver` keeps the three deterministic demo paths local and routes other supported Instagram post/Reel URLs through acquisition, parser and normalizer. Fixture results remain cloned and network-free. Unsupported Instagram paths return `UNSUPPORTED_CONTENT`. Facebook and Threads are detected but have no registered resolver.
+`meta-resolver` owns deterministic fixtures, InstagramContentRef parsing, `POLARIS_POST_ROOT_PROFILE_V1`, request construction, acquisition contract, defensive structured-response parser and normalizer. The runtime owns network I/O; parsers and resolvers do not use global fetch. `/reels/` normalizes to `/reel/`. Media kind comes from the response. Sanitized raw fixtures use only synthetic URLs, independently of UI demo fixtures.
 
-`runtime-web` implements small request/response/capability contracts. Ordinary requests are restricted to same-origin HTTP(S), with credentials omitted and no-store requested. The optional origin-session capability keeps cookie context and CSRF injection inside the runtime and permits browser-owned same-origin credentials only after explicit session preparation. Resolvers never use global fetch; only the runtime owns transport. A future extension/native runtime can implement the same contract. Neither exists in this milestone.
+`runtime-web` owns browser requests and downloads. Its M4C origin-session implementation remains available through existing contracts/tests, but the production web client does not attempt direct cross-origin Instagram acquisition. ExtensionRuntime and NativeRuntime remain future options for fuller local execution through the same contracts; neither is implemented.
 
-`downloader` accepts same-origin `/demo/` assets only and uses browser download anchors. Multiple assets are requested sequentially. There is no proxy, ZIP, transcoding or audio extraction.
+`downloader` handles explicit browser-native downloads, sequential for multiple selections. Media bytes never go through the metadata API. Source/browser restrictions may prevent a save; no ZIP or transcoding exists.
 
-`share-target` extracts one supported URL from URL, then text, then title. Unsafe schemes and lookalike hosts are rejected.
+`share-target` selects one supported HTTP(S) URL from URL, text, then title. `/share` extracts query fields and replaces the visible route with `/` before calling the same transient Pinia store used by manual Resolve.
 
-`web` owns transient Pinia resolution state (`IDLE`, `RESOLVING`, `RESOLVED`, `ERROR`), indeterminate loading, accessible forms, previews, selection, download actions and a trace panel. Vue escapes fixture text. No post-related state is persisted.
+`web` owns IDLE/RESOLVING/RESOLVED/ERROR states, previews, selection, source labels and privacy details. Exact fixture paths resolve locally. Other supported Instagram paths use only the configured Resolver API, with credentials omitted, no-store and no redirects. API responses are schema-validated and matched to the requested canonical URL. Missing configuration is a typed error, never direct-network fallback.
 
-## Data flow
+## Metadata flow
 
-Explicit paste + Resolve (or an explicit OS share) → supported URL parsing → resolver registry → fixture lookup → cloned `ResolveResult` → preview and privacy panel → explicit download click → runtime → browser-native save.
+```text
+PWA -- explicit public Instagram URL --> UniFetch Resolver
+    -- fixed bootstrap + metadata POST --> Instagram
+    <-- structured metadata -- Instagram
+PWA <-- normalized metadata + direct asset URLs -- UniFetch Resolver
+PWA -- direct asset request --> Instagram / source CDN
+```
 
-The `/share` route reads its query, extracts one URL, replaces the browser route with `/`, then calls the same resolution store as manual input. No share payload is persisted.
+The Worker accepts POST/OPTIONS at `/api/resolve` only. It limits the JSON body to 4096 bytes, uses a strict single-url schema, accepts supported HTTPS Instagram content paths, and rejects client credentials, custom destinations and query-bearing API requests. Mobile Instagram host input supports posts; canonical/www hosts support posts, reel and reels. It parses the reference rather than fetching the raw input URL.
 
-## Offline Instagram parsing (M4A)
+`CloudflareInstagramAcquisitionAdapter` reuses the supplied Polaris adapter. `CloudflareMetadataRuntime` permits only the profile's root bootstrap and exact metadata endpoint. Redirects are not followed; requests use no-store and 10-second timeouts. Bootstrap body is cancelled; metadata is bounded to 1 MiB. Cookie/CSRF context lives inside a per-request runtime session closure, permits one profile POST and is discarded afterward. No cookie or token is exposed in the session contract.
 
-Future Instagram live resolution is separated into Acquisition → Parser → Normalizer → ResolveResult. M4A implements Parser + Normalizer only, exposed through `@unifetch/meta-resolver/instagram`. `parseInstagramMediaResponse(raw, expectedShortcode)` defensively reads the supplied structured response and preserves valid media candidates and carousel order. `normalizeInstagramMedia(media, canonicalUrl)` selects the largest pixel-area candidates and maps them to the existing core types with stable filenames and an offline trace.
+The existing M4A parser/normalizer selects direct media candidates and preserves carousel order. Malformed children fail rather than silently reorder. Missing structure means PARSER_OUTDATED; unavailable/auth/rate/network errors retain typed categories. The Worker validates a narrow success response (at most 100 assets) before sending it, without raw JSON, headers, cookies or stacks. Only normalized post, trace, response-derived kind and transport identity are returned.
 
-Sanitized raw-response fixtures are separate from the UI fixtures, under `packages/meta-resolver/src/instagram/__fixtures__/`, and use only synthetic `media.invalid` URLs. Complete positive dimensions take precedence over incomplete dimensions; area ties and unknown areas retain source order. Invalid candidates are filtered, but malformed carousel children fail the whole parse rather than silently changing its item order. Missing structures produce `PARSER_OUTDATED`; explicit empty content produces `CONTENT_UNAVAILABLE`. Optional owner, caption and timestamp fields may be absent or malformed. Valid timestamps map to ISO strings. The supplied shortcode is authoritative.
+API output includes Cache-Control: no-store, Pragma: no-cache and explicit configurable CORS without Access-Control-Allow-Credentials. There are no media routes, caches, bindings, persistence or background processing. Wrangler builds locally with a dry run; deployment is separate.
 
-M4A itself implements no acquisition or production integration. Its normalization reports local processing, no proxy, no credential export and an empty network trace. M4B owns acquisition; the M4C composition below supplies the successful acquisition trace.
+## Trace and UI
 
-## Instagram acquisition architecture (M4B)
+Fixture results remain processedLocally=true, remoteProxyUsed=false, credentialsExported=false with no resolution network requests. Worker results use processedLocally=false, metadataResolverUsed=true, mediaProxyUsed=false, credentialsExported=false. Compatibility field remoteProxyUsed=true denotes a remote **metadata intermediary**, not a media relay. The web client adds its Resolver origin to origin-only upstream metadata records. These records describe resolution, not subsequent direct media previews/downloads.
 
-Instagram URL → InstagramContentRef → InstagramAcquisitionAdapter → RuntimeAdapter → raw response → parseInstagramMediaResponse → normalizeInstagramMedia → ResolveResult.
+Worker results show “Resolution source: UniFetch Resolver” and separate resolution/media privacy statements. Fixtures show “Demo fixture” and their accurate local trace.
 
-`parseInstagramContentRef` accepts only post/Reel paths, canonicalizes `/reels/` to `/reel/` and uses HTTPS with the canonical host. URL kind is a routing hint, never the authoritative media type. `PolarisPostRootAcquisitionAdapter` prepares a runtime-owned origin session and builds one form-encoded POST using `PolarisPostRootQueryProfileV1`. The endpoint, document ID, app ID, version and session requirements live in one profile module. This profile is an unstable Instagram web implementation detail and may need replacement without changing the parser, normalizer or UI. M4B supports only this supplied profile, with no discovery, retry or alternate endpoint.
+## Historical decision
 
-The optional `prepareOriginSession` capability owns the GET bootstrap and cookie context, returning only a session-bound request method. Requests specify a CSRF header injection requirement, never a token. The WebRuntime rejects cross-origin sessions before bootstrap because ordinary web JavaScript cannot access that origin's cookie context. For an accessible same-origin context it uses standards-compliant browser requests and reads CSRF only internally, with no saved token snapshot or application-storage writes. Opaque responses, browser policy restrictions and inaccessible session state produce `BROWSER_RESTRICTION`. Browser-controlled headers are not spoofed.
-
-Acquisition classifies transport status and explicit rate-limit/login/unavailability signals, returns structured raw responses for M4A to interpret, and never calls the parser or normalizer itself. Its in-memory network records contain only origin and metadata purpose; the successful origin record covers bootstrap and POST, without URLs, shortcodes or credentials. M4A's offline trace is unchanged; combining a live acquisition trace into a production result is future integration work.
-
-There is no backend, proxy fallback or CORS workaround. ExtensionRuntime / NativeRuntime remain future runtime options. M4B itself added no manual probe or UI integration; deterministic tests use mocked transports only.
-
-## Production composition and browser feasibility (M4C)
-
-Manual paste or explicit share → Instagram URL → InstagramContentRef → InstagramAcquisitionAdapter → RuntimeAdapter → raw response → parseInstagramMediaResponse → normalizeInstagramMedia → ResolveResult → existing UI.
-
-The composition layer checks the exact demo paths before acquisition. Other supported `/p/`, `/reel/` and `/reels/` paths use the existing single profile. Results add a small source label (`fixture` or `live`) and the response-derived media kind without changing core domain types. Successful live results combine acquisition origins with local processing/no proxy/no credential export flags. Typed errors remain errors; a blocked request never produces a fabricated success trace. The Pinia store remains transient and the share route still removes query data before resolution.
-
-Real-browser UI checks at 360, 768 and 1280 pixels confirmed demo previews and supported-path error handling. Supported synthetic live-shaped URLs and a share URL produced `BROWSER_RESTRICTION` from the local app origin, because the existing WebRuntime rejects inaccessible cross-origin session context before Instagram bootstrap. The dev-only manual probe was run with three user-supplied public URLs: image post → `BROWSER_RESTRICTION`, carousel → `BROWSER_RESTRICTION`, Reel → `BROWSER_RESTRICTION`. None succeeded, so no live direct download was tested. No identifiers or response payloads were retained. There is no proxy fallback or alternate endpoint. The existing download flow remains in place and exposes its typed browser restriction for non-local demo assets.
-
-A developer-only `/dev/instagram-probe` route manually processes exactly three supplied public URLs using the same pipeline. It clears input fields on submission and displays only high-level status or successful kind/count/types, without logging or persisting inputs/results. Vite excludes the route and harness from production builds. Broader local capability may require future ExtensionRuntime or NativeRuntime.
+M4C direct WebRuntime probes for public Image, Carousel and Reel each returned BROWSER_RESTRICTION in the tested environment, before cross-origin bootstrap. No live success/download was established by those probes. M4D was intentionally skipped because this already established the runtime decision. M5 changes normal production transport to the metadata Resolver, without adding an alternate Instagram profile.
 
 ## PWA
 
-vite-plugin-pwa generates the manifest and service worker. Shell resources are precached; demo assets are excluded, runtime caching is empty, and `/share`/`/demo` navigation fallbacks are denied. Fixed fictional fixture metadata is compiled into application JavaScript. Static hosting must route `/share` to the HTML shell without caching share query data. The shell works offline after installation, but demo media has no intentional offline archive. Browser HTTP cache remains under browser/host control.
+The manifest uses standalone display and a GET `/share` target. Service-worker precaching includes only shell HTML, JS, CSS and icons. Demo media is excluded, runtime caching is empty, and share/demo navigation fallback is denied. Fixed fictional demo metadata is compiled into JS. No resolved URL, metadata or media is intentionally cached. Hosting and browser caches are separate operator/browser responsibilities.
 
-## Errors
-
-Typed errors include a diagnostic code and safe message. The UI never renders raw exceptions or stack traces. Unexpected failures become `UNKNOWN`. Download notices distinguish browser download requests from confirmed filesystem writes, which the web app cannot verify.
+M5–M5.5 local validation established successful metadata resolution for the tested public Instagram image post, carousel and Reel, direct image preview, direct image Blob download and Open original. The Cloudflare Resolver is the current Web/PWA compatibility runtime for metadata; media is fetched directly by the user’s browser/device. These tests do not establish support for all public content or live video downloads. No public identifiers or raw response payloads were retained in source, fixtures or documentation.

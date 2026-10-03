@@ -38,6 +38,12 @@ export const instagramFixtureResolver: Resolver = {
     return structuredClone(fixture);
   },
 };
+export function isInstagramFixtureUrl(url: URL): boolean {
+  const path = url.pathname.endsWith('/') ? url.pathname : `${url.pathname}/`;
+  return (
+    parseSupportedUrl(url.href).platform === 'instagram' && fixtures.has(path)
+  );
+}
 export function createResolver(
   runtime: RuntimeAdapter,
   acquisition?: InstagramAcquisitionAdapter,
@@ -45,12 +51,7 @@ export function createResolver(
   const registry = new ResolverRegistry(runtime, [
     createInstagramResolver(
       instagramFixtureResolver,
-      (url) => {
-        const path = url.pathname.endsWith('/')
-          ? url.pathname
-          : `${url.pathname}/`;
-        return fixtures.has(path);
-      },
+      isInstagramFixtureUrl,
       acquisition,
     ),
   ]);

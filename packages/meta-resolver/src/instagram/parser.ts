@@ -76,7 +76,7 @@ export function parseInstagramMediaResponse(
   const root = record(response.items[0]);
   if (!root) outdated();
   const carousel =
-    Object.hasOwn(root, 'carousel_media') ||
+    root.carousel_media != null ||
     root.media_type === 8 ||
     root.product_type === 'carousel_container';
   let items: InstagramResolvedAsset[];

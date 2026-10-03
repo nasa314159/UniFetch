@@ -240,7 +240,7 @@ describe('Offline mocked acquisition', () => {
     [403, 'LOGIN_REQUIRED'],
     [404, 'CONTENT_UNAVAILABLE'],
     [410, 'CONTENT_UNAVAILABLE'],
-    [500, 'NETWORK_ERROR'],
+    [500, 'UNKNOWN'],
     [0, 'BROWSER_RESTRICTION'],
   ] as const)('classifies HTTP %s as %s', async (status, code) => {
     const { runtime } = mockedRuntime(reply({}, status));
@@ -255,7 +255,7 @@ describe('Offline mocked acquisition', () => {
     ).rejects.toMatchObject({ code: 'LOGIN_REQUIRED' });
   });
   it.each(['bootstrap', 'post'])(
-    'maps untyped transport failure at %s to NETWORK_ERROR',
+    'maps untyped runtime failure at %s to UNKNOWN',
     async (stage) => {
       const { runtime, prepareOriginSession, sessionRequest } = mockedRuntime();
       const failure = new Error('Sensitive transport details');
@@ -265,8 +265,8 @@ describe('Offline mocked acquisition', () => {
       await expect(
         adapter.acquirePublicMedia(ref, { runtime }),
       ).rejects.toMatchObject({
-        code: 'NETWORK_ERROR',
-        message: 'The Instagram request could not be completed.',
+        code: 'UNKNOWN',
+        message: 'Instagram metadata could not be processed.',
       });
     },
   );

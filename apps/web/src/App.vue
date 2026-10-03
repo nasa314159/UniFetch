@@ -20,7 +20,7 @@ async function install() {
         ></RouterLink
       ><button v-if="installEvent" class="install" @click="install">
         Install app <span aria-hidden="true">↗</span></button
-      ><span v-else class="local-mark"><span></span> Local by design</span>
+      ><span v-else class="local-mark"><span></span> No media proxy</span>
     </header>
     <main><RouterView /></main>
     <footer>

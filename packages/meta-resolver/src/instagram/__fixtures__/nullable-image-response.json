@@ -1,0 +1,33 @@
+{
+  "data": {
+    "xdt_api__v1__media__shortcode__web_info": {
+      "items": [
+        {
+          "id": "fictional-nullable-image",
+          "code": "synthetic-nullable-image",
+          "media_type": 1,
+          "product_type": "feed",
+          "carousel_media": null,
+          "video_versions": null,
+          "image_versions2": {
+            "candidates": [
+              {
+                "url": "https://media.invalid/fictional/image.jpg?signature=fictional%2Fvalue&size=original",
+                "width": 1600,
+                "height": 1200
+              }
+            ]
+          },
+          "user": {
+            "username": "fictional_nullable_artist",
+            "full_name": "Fictional Shape Studio"
+          },
+          "caption": {
+            "text": "A fictional postcard used only for parser regression tests."
+          },
+          "taken_at": null
+        }
+      ]
+    }
+  }
+}

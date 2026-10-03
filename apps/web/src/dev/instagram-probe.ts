@@ -1,6 +1,5 @@
 import { asUniFetchError, type MediaType } from '@unifetch/core';
-import { createResolver } from '@unifetch/meta-resolver';
-import { WebRuntime } from '@unifetch/runtime-web';
+import { createWebResolver } from '../resolver-client';
 
 export interface InstagramProbeInputs {
   imagePost: string;
@@ -11,7 +10,6 @@ type ProbeStatus =
   | 'SUCCESS'
   | 'RATE_LIMITED'
   | 'LOGIN_REQUIRED'
-  | 'BROWSER_RESTRICTION'
   | 'NETWORK_ERROR'
   | 'CONTENT_UNAVAILABLE'
   | 'PARSER_OUTDATED'
@@ -28,7 +26,9 @@ export async function runInstagramProbe(
 ): Promise<Record<keyof InstagramProbeInputs, InstagramProbeOutcome>> {
   if (!import.meta.env.DEV)
     throw new Error('The manual probe is development-only.');
-  const resolver = createResolver(new WebRuntime());
+  const resolver = createWebResolver(
+    import.meta.env.VITE_UNIFETCH_RESOLVER_URL,
+  );
   const outcomes = {} as Record<
     keyof InstagramProbeInputs,
     InstagramProbeOutcome
@@ -37,7 +37,7 @@ export async function runInstagramProbe(
     try {
       const result = await resolver.resolve(inputs[key]);
       outcomes[key] =
-        result.source === 'live'
+        result.source === 'worker'
           ? {
               status: 'SUCCESS',
               kind: result.kind,
@@ -50,7 +50,6 @@ export async function runInstagramProbe(
       const status: ProbeStatus = [
         'RATE_LIMITED',
         'LOGIN_REQUIRED',
-        'BROWSER_RESTRICTION',
         'NETWORK_ERROR',
         'CONTENT_UNAVAILABLE',
         'PARSER_OUTDATED',

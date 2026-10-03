@@ -65,7 +65,7 @@ async function run() {
       <li v-for="(outcome, key) in report" :key="key">
         {{ key }}: {{ outcome.status
         }}<template v-if="outcome.status === 'SUCCESS'">
-          · {{ outcome.kind }} · {{ outcome.assetCount }} assets ·
+          · {{ outcome.assetCount }} assets ·
           {{ outcome.assetTypes?.join(', ') }}</template
         >
       </li>

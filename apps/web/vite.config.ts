@@ -12,7 +12,7 @@ export default defineConfig({
         name: 'UniFetch',
         short_name: 'UniFetch',
         description:
-          'Save media you can already access. Locally. Transparently.',
+          'Save media you can already access. Direct media. Transparently.',
         display: 'standalone',
         scope: '/',
         start_url: '/',

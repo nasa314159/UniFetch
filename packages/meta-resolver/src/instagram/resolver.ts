@@ -8,7 +8,7 @@ import { parseInstagramMediaResponse } from './parser';
 import { normalizeInstagramMedia } from './normalize';
 import type { InstagramResolvedKind } from './types';
 
-export type ResolutionSource = 'fixture' | 'live';
+export type ResolutionSource = 'fixture' | 'live' | 'worker';
 export interface InstagramResolutionResult extends ResolveResult {
   source: ResolutionSource;
   kind: InstagramResolvedKind;

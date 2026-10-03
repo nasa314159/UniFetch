@@ -28,7 +28,8 @@ function fail(
     | 'LOGIN_REQUIRED'
     | 'CONTENT_UNAVAILABLE'
     | 'NETWORK_ERROR'
-    | 'PARSER_OUTDATED',
+    | 'PARSER_OUTDATED'
+    | 'UNKNOWN',
 ): never {
   const messages = {
     RATE_LIMITED: 'Instagram has rate-limited this request. Try again later.',
@@ -36,6 +37,7 @@ function fail(
       'Instagram requires login for this content. No login flow is available.',
     CONTENT_UNAVAILABLE: 'This Instagram content is unavailable.',
     NETWORK_ERROR: 'The Instagram request could not be completed.',
+    UNKNOWN: 'Instagram metadata could not be processed.',
     PARSER_OUTDATED:
       'Instagram did not return a structured response recognized by this profile.',
   };
@@ -58,7 +60,7 @@ function classify(response: RuntimeResponse): unknown {
       'BROWSER_RESTRICTION',
       'The browser did not expose a readable response.',
     );
-  if (response.status !== 200) fail('NETWORK_ERROR');
+  if (response.status !== 200) fail('UNKNOWN');
   let raw: unknown;
   try {
     raw = JSON.parse(new TextDecoder().decode(response.body));
@@ -121,7 +123,7 @@ export class PolarisPostRootAcquisitionAdapter implements InstagramAcquisitionAd
       };
     } catch (error) {
       if (error instanceof UniFetchError) throw error;
-      fail('NETWORK_ERROR');
+      fail('UNKNOWN');
     }
   }
 }

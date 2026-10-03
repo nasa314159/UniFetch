@@ -1,16 +1,20 @@
 # Supported content
 
-| Platform / content | Current support                            |
-| ------------------ | ------------------------------------------ |
-| Instagram Post     | Fixture/demo: one local original SVG image |
-| Instagram Carousel | Fixture/demo: image, image, video, image   |
-| Instagram Reel     | Fixture/demo: local original portrait MP4  |
-| Instagram Stories  | Not supported                              |
-| Facebook           | Planned; host detection only               |
-| Threads            | Planned; host detection only               |
+| Platform/content   | Current support                                                                                                       |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Instagram Post     | Local single-image fixture; public metadata resolved through configured UniFetch Resolver (tested samples)            |
+| Instagram Carousel | Local image/image/video/image fixture; public metadata resolved through configured UniFetch Resolver (tested samples) |
+| Instagram Reel     | Local portrait-video fixture; public metadata resolved through configured UniFetch Resolver (tested samples)          |
+| Instagram Stories  | Unsupported                                                                                                           |
+| Facebook           | Planned, detection only                                                                                               |
+| Threads            | Planned, detection only                                                                                               |
 
-Demo IDs are `unifetch-demo-image`, `unifetch-demo-carousel`, and `unifetch-demo-reel`. All authors and captions are fictional. Media was created locally for UniFetch; no third-party copyrighted media is included. Other Instagram `/p/`, `/reel/` and `/reels/` URLs now enter the live acquisition → parser → normalizer pipeline. Real-browser synthetic supported-path checks returned `BROWSER_RESTRICTION` because WebRuntime cannot access the cross-origin Instagram session context. Manual probes for one user-supplied public image post, one carousel and one Reel each returned `BROWSER_RESTRICTION`. None succeeded and no live download was tested. There is no server proxy fallback; demo mode remains available. Only HTTP(S) URLs on the documented host allowlist are accepted.
+Demo IDs are unifetch-demo-image, unifetch-demo-carousel and unifetch-demo-reel. Authors/captions are fictional; artwork/clips were generated locally. Demo previews and downloads remain functional without a metadata Resolver.
 
-There is no audio extraction, transcoding, ZIP export, profile crawling or bulk content discovery. Multiple carousel assets are downloaded individually and sequentially after explicit selection or Download all.
+Public HTTPS `/p/`, `/reel/` and `/reels/` links use the existing Polaris profile through `POST /api/resolve`. The Worker accepts canonical/www Instagram hosts for these paths and the mobile host for posts. It returns direct media URLs and normalized metadata, never media files. Missing configuration or upstream restrictions produce explicit typed failures. Endpoint stability and public accessibility do not guarantee metadata success, preview or download. There is no login/private-account support or alternate profile.
 
-Broader local resolution capability may require a future ExtensionRuntime or NativeRuntime. Neither is implemented. Live-capable mocked runtime tests cover image, mixed carousel and Reel composition; they do not establish production Instagram support.
+The M4C direct-browser feasibility probes for public Image, Carousel and Reel all returned BROWSER_RESTRICTION in the tested environment. M4D was intentionally skipped because M4C established the runtime decision. M5 routes normal live metadata through the Resolver; no extension/native runtime is implemented.
+
+Carousel downloads are individual sequential requests after selection/Download all. No media proxy/cache, ZIP, transcoding, audio extraction, crawling or bulk discovery is included.
+
+M5–M5.5 local validation established successful metadata resolution for the tested public Instagram image post, carousel and Reel, direct image preview, direct image Blob download and Open original. The Cloudflare Resolver is the current Web/PWA compatibility runtime for metadata; media is fetched directly by the user’s browser/device. These tests do not establish support for all public content or live video downloads. No public identifiers or raw response payloads were retained in source, fixtures or documentation.

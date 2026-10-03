@@ -2,12 +2,19 @@
 import { computed, ref } from 'vue';
 import { asUniFetchError } from '@unifetch/core';
 import type { InstagramResolutionResult } from '@unifetch/meta-resolver';
-import { downloadSequential } from '@unifetch/downloader';
+import { downloadSequential, originalMediaUrl } from '@unifetch/downloader';
 import { WebRuntime } from '@unifetch/runtime-web';
 const props = defineProps<{ result: InstagramResolutionResult }>();
 const selected = ref(props.result.post.assets.map((asset) => asset.id));
 const downloading = ref(false);
 const notice = ref('');
+function originalLink(input: string): string | undefined {
+  try {
+    return originalMediaUrl(input);
+  } catch {
+    return undefined;
+  }
+}
 const contentType = computed(() =>
   props.result.kind === 'carousel'
     ? 'Carousel'
@@ -25,7 +32,7 @@ async function download(ids: string[]) {
       new WebRuntime(),
     );
     notice.value =
-      'Downloads requested. Your browser may ask you to allow multiple files.';
+      'Download requested. Check your browser for the saved file. Multiple files may require permission.';
   } catch (cause) {
     const error = asUniFetchError(cause);
     notice.value = `${error.message} (${error.code})`;
@@ -43,7 +50,13 @@ async function download(ids: string[]) {
     </div>
     <p class="source-label">
       Resolution source:
-      {{ result.source === 'fixture' ? 'Demo fixture' : 'Live Instagram' }}
+      {{
+        result.source === 'fixture'
+          ? 'Demo fixture'
+          : result.source === 'worker'
+            ? 'UniFetch Resolver'
+            : 'Live Instagram'
+      }}
     </p>
     <div v-if="result.post.author" class="author">
       <div class="avatar" aria-hidden="true">U</div>
@@ -103,6 +116,16 @@ async function download(ids: string[]) {
               asset.durationMs ? ` · ${asset.durationMs / 1000}s` : ''
             }}</span
           ><small>{{ asset.mimeType || asset.type }}</small>
+          <a
+            v-if="result.source !== 'fixture' && originalLink(asset.url)"
+            :href="originalLink(asset.url)"
+            target="_blank"
+            rel="noopener noreferrer"
+            referrerpolicy="no-referrer"
+            >Open original<span v-if="result.post.assets.length > 1">
+              · Asset {{ index + 1 }}</span
+            ></a
+          >
         </div>
       </article>
     </div>
@@ -136,10 +159,29 @@ async function download(ids: string[]) {
         <span aria-hidden="true">↓</span>
       </button>
     </div>
+    <p v-if="result.source !== 'fixture'" class="download-notice">
+      Download reads the source directly when its cross-origin rules allow it.
+      Open original opens the source file without claiming it was saved.
+      UniFetch does not relay media.
+    </p>
     <p v-if="notice" class="download-notice" role="status">{{ notice }}</p>
     <details class="privacy">
       <summary>Privacy <span>Resolution details</span></summary>
-      <ul>
+      <div v-if="result.source === 'worker'" class="worker-privacy">
+        <strong>Resolution</strong>
+        <ul>
+          <li>✓ User initiated</li>
+          <li>○ Metadata resolved by UniFetch Resolver</li>
+          <li>✓ No Instagram credentials uploaded</li>
+        </ul>
+        <strong>Media</strong>
+        <ul>
+          <li>✓ Direct source asset URLs</li>
+          <li>✓ Media is not proxied through UniFetch</li>
+          <li>✓ No download history stored</li>
+        </ul>
+      </div>
+      <ul v-else>
         <li>
           {{
             result.trace.processedLocally

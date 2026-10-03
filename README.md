@@ -1,72 +1,77 @@
 # UniFetch
 
-Save media you can already access. Locally. Transparently.
+Save media you can already access. Direct media. Transparently.
 
-UniFetch is an open-source, local-first web interface that acts on one URL explicitly supplied by the user. It is a static Vue application and installable PWA with a deterministic demo and a layered Instagram resolution pipeline.
+UniFetch is an open-source Vue 3 web interface and installable PWA that processes one URL explicitly supplied by the user. Demo fixtures work locally. Public Instagram Post, Carousel and Reel metadata can be resolved by the open-source UniFetch Resolver within the tested public content scope. UniFetch does not proxy media files through its servers.
 
-**M4C wires live Instagram URL handling into acquisition → parser → normalizer → result, while keeping deterministic demo fixtures separate.** Ordinary WebRuntime cannot access Instagram’s cross-origin session context from the UniFetch origin and returns `BROWSER_RESTRICTION` before bootstrap. Real-browser checks confirmed this restriction; one user-supplied public image post, one public carousel and one public Reel each returned `BROWSER_RESTRICTION`. None succeeded, and no live media download was tested. Live downloading is not claimed to work. There is no remote proxy fallback.
+M5 adds a metadata-only Cloudflare Worker using the existing centralized Polaris profile. It requires no Instagram credentials or user account and stores no resolution history. Returned assets are direct source URLs, not relayed files. The profile is unstable; typed failures do not imply support for every public post. Live success is not guaranteed.
 
-## Try the demo
+## Demo
 
-Use the Image, Carousel, or Reel buttons, or paste:
+Use the Image, Carousel and Reel buttons or paste:
 
 - `https://www.instagram.com/p/unifetch-demo-image/`
 - `https://www.instagram.com/p/unifetch-demo-carousel/`
 - `https://www.instagram.com/reel/unifetch-demo-reel/`
 
-The author is fictional. SVG artwork and MP4 clips were generated locally for this repository. Preview individual assets, select carousel items, download local files, and inspect the expandable Privacy section.
+Authors and captions are fictional. SVG artwork and MP4 clips were generated locally. Demo resolution remains network-free; preview and download request local application assets.
 
 ## Development
 
-Prerequisites: Node.js 22 or newer and pnpm 10 (the package manager version is pinned in `package.json`).
+Use Node.js 22 or newer and pnpm 10 (pinned in package.json).
 
 ```sh
 pnpm install
-pnpm dev
+cp apps/web/.env.example apps/web/.env.local
+pnpm dev:resolver
+# In another terminal:
+pnpm dev:web
+```
+
+The example sets `VITE_UNIFETCH_RESOLVER_URL=http://127.0.0.1:8787`. This variable is an origin, without a path, query or credentials. It is public configuration, not a secret. Local Wrangler development needs no Cloudflare account. Open the web app at http://127.0.0.1:5173. Without a configured Resolver, fixtures work and other supported URLs show a typed configuration error; there is no direct Instagram fallback.
+
+```sh
 pnpm test
 pnpm lint
 pnpm build
+pnpm format:check
 pnpm --filter @unifetch/web preview
 ```
 
-`pnpm build` typechecks the application and packages before building static files into `apps/web/dist`. `pnpm format` and `pnpm format:check` maintain formatting. No server, database, credentials, or environment secrets are required.
+Build typechecks the web app/packages, produces `apps/web/dist`, and typechecks/bundles the Worker through a Wrangler dry run. Tests use mocks and sanitized fixtures, never a Cloudflare account or live Instagram. Worker output and local Wrangler state are ignored.
 
 ## Architecture
 
-- `@unifetch/core`: domain types, typed errors, Zod input validation, URL normalization, runtime/resolver contracts and registry.
-- `@unifetch/meta-resolver`: separate fixture and live paths; content references, one supplied unstable acquisition profile, defensive parser and normalizer. Only the runtime owns transport.
-- `@unifetch/runtime-web`: a small browser runtime with credential-free, same-origin requests and local downloads.
-- `@unifetch/downloader`: browser-native local downloads, sequential for multiple assets.
-- `@unifetch/share-target`: HTTP(S) supported-link extraction with URL → text → title priority.
-- `@unifetch/web`: Vue 3, Pinia state, Vue Router, scoped CSS and PWA shell.
+- `@unifetch/core`: domain types, errors, URL validation, runtime/resolver contracts and narrow Zod API schema.
+- `@unifetch/meta-resolver`: deterministic demo, Instagram references, existing single acquisition profile, defensive parser and normalizer. Transport belongs to runtime adapters.
+- `@unifetch/runtime-web`: browser transport and browser-native downloads.
+- `@unifetch/downloader`: explicit downloads, sequential for multiple assets.
+- `@unifetch/share-target`: supported HTTP(S) link extraction, URL → text → title.
+- `@unifetch/web`: Vue, Pinia, Vue Router, scoped CSS, shell-only PWA and configurable metadata client.
+- `@unifetch/resolver-worker`: Cloudflare runtime and metadata-only `POST /api/resolve` API.
 
-Resolver contracts can later accept an extension or native runtime without being changed. Those runtimes are not implemented here. See [architecture](docs/architecture.md).
+PWA → one public Instagram URL → Resolver → fixed Instagram bootstrap/metadata requests → normalized metadata and direct URLs → PWA → direct source/CDN asset request. See [architecture](docs/architecture.md).
 
-## Privacy principles
+## Privacy and hosting
 
-No media proxy, accounts, analytics, telemetry, tracking pixels, cookie export, or credential collection. URLs, posts, authors, captions, media references and downloads remain transient in memory. This version writes no preferences to local storage either.
+Metadata resolution sends the chosen public URL to the configured Resolver. The Resolver sees it and the upstream response transiently. It uses only per-request upstream cookie/CSRF context, never user-provided Instagram credentials, and returns neither cookies nor raw responses. No application history, persistent storage, analytics or telemetry is added. Image/video bytes do not pass through the Worker.
 
-The service worker precaches only the application shell, scripts, CSS and icons. Demo media is excluded; there are no runtime caching rules or offline media archives. Bundled scripts necessarily include the fixed fictional fixture metadata, never user-resolved data. The Privacy panel reports resolution requests separately from local preview/download requests.
+The service worker caches only the application shell; it does not cache resolved metadata or media. The share route replaces its query before resolution. Host/provider logs and browser HTTP caches remain outside application control; operators must configure them appropriately. Open source makes the implementation auditable, but does not verify the behavior of a particular deployment. See [privacy](docs/privacy-model.md) and [threat model](docs/threat-model.md).
 
-## PWA and hosting
+Serve `apps/web/dist` over HTTPS, routing `/` and `/share` to the shell. Configure `ALLOWED_ORIGINS` in `apps/resolver-worker/wrangler.jsonc` to the actual frontend origin(s); wildcard CORS and browser credentials are not used. Configure the frontend Resolver origin at build time. Production deployment requires a Cloudflare account and the explicit Worker deploy script; M5 does not deploy automatically. Worker observability and Wrangler metrics are disabled in the supplied configuration.
 
-Serve `apps/web/dist` on HTTPS (localhost works for development). Configure static hosting to serve `index.html` for `/` and `/share`, while serving asset paths as files. The manifest registers a GET share target at `/share` with `title`, `text` and `url` fields. The route extracts a supported URL, replaces the visible route with `/`, then resolves normally. Sensitive share query data is not persisted by the app.
+PWA installation and OS share-target support depend on browser/OS. GET share data may be observed by the static host before route replacement. `/share` is excluded from service-worker navigation fallback, so hosts relying on routing fallback need connectivity. Multiple native downloads can require browser permission.
 
-Install and share-target support depend on the browser and OS. Where supported, an Install app button appears. On other platforms use the browser's installation menu. Browser-native multiple downloads may require browser permission. Share requests can reach the static host before the app scrubs them, so configure hosting logs appropriately; this app cannot control browser history, HTTP caches or hosting logs. `/share` is excluded from service-worker navigation fallback. GET shares therefore require connectivity on hosts that rely on a routing fallback.
+## Milestones and limitations
 
-## Developer-only manual probe
+M4A established offline parsing/normalization; M4B added the supplied acquisition profile. M4C integrated the direct pipeline. Public Image, Carousel and Reel probes each returned `BROWSER_RESTRICTION` in the tested browser environment. **M4D was intentionally skipped** because M4C had already established the runtime decision. M5 supplies remote metadata resolution while keeping media direct.
 
-With `pnpm dev`, open `/dev/instagram-probe`. Supply exactly one public image-post URL, one public carousel URL and one public Reel URL, then explicitly run the three probes. Inputs clear on submission and remain transient; the harness displays only typed status, or successful kind/count/types. Nothing is logged or persisted. The route and harness are removed from production builds. Do not add real identifiers or captured payloads to source, tests, docs or fixtures.
+Stories are unsupported. Facebook and Threads are detected but planned only. ExtensionRuntime and NativeRuntime remain future options for fuller local execution; neither is implemented. No alternate endpoint discovery, crawling, bulk enumeration, private-account access, login, ZIP, audio extraction or transcoding is implemented. Direct media preview/download remains subject to source/CDN browser restrictions; no proxy workaround exists.
 
-## Limitations and roadmap
+The development-only `/dev/instagram-probe` form manually accepts exactly three public URLs, clears them on submission and shows only typed status or successful counts/types. It is excluded from production builds and stores/logs no inputs or outcomes.
 
-- Instagram Post, Carousel, Reel: demo is reliable; live pipeline accepts `/p/`, `/reel/` and `/reels/` paths, but WebRuntime is restricted by origin/session policy.
-- Stories: not supported.
-- Facebook and Threads: detected; planned, no resolver.
-- Future: ExtensionRuntime or NativeRuntime may provide broader local capabilities, subject to platform access controls and the same trust boundaries. Neither is implemented.
-- Downloads reuse the existing browser-native flow. The current downloader rejects non-local demo assets with `BROWSER_RESTRICTION`; no successful live media download has been validated.
-- No crawling, bulk enumeration, authentication bypass, ZIP creation, audio extraction or transcoding.
+MIT licensed. See [supported content](docs/supported-content.md).
 
-Only an explicit resolve/share action processes a URL. Only an explicit download action saves media. Review [privacy](docs/privacy-model.md), [threat model](docs/threat-model.md) and [supported content](docs/supported-content.md).
+M5–M5.5 local validation established successful metadata resolution for the tested public Instagram image post, carousel and Reel, direct image preview, direct image Blob download and Open original. The Cloudflare Resolver is the current Web/PWA compatibility runtime for metadata; media is fetched directly by the user’s browser/device. These tests do not establish support for all public content or live video downloads. No public identifiers or raw response payloads were retained in source, fixtures or documentation.
 
-MIT licensed.
+M5.4 local probes established successful public image, carousel and Reel metadata resolution and direct image preview. Direct downloads depend on browser/CDN cross-origin rules: local fixtures use anchors; remote downloads read the direct source as a Blob when CORS permits. Open original is available separately and does not imply a saved file. UniFetch does not relay media to bypass these rules.
