@@ -1,0 +1,40 @@
+{
+  "data": {
+    "xdt_api__v1__media__shortcode__web_info": {
+      "items": [
+        {
+          "id": "fictional-image-root",
+          "code": "unifetch-raw-image",
+          "media_type": 1,
+          "image_versions2": {
+            "candidates": [
+              {
+                "url": "https://media.invalid/unifetch/image-medium.jpg",
+                "width": 640,
+                "height": 480
+              },
+              {
+                "url": "https://media.invalid/unifetch/image-high.jpg",
+                "width": 1600,
+                "height": 1200
+              },
+              {
+                "url": "https://media.invalid/unifetch/image-low.jpg",
+                "width": 320,
+                "height": 240
+              }
+            ]
+          },
+          "user": {
+            "username": "unifetch_schema_demo",
+            "full_name": "Fictional Schema Studio"
+          },
+          "caption": {
+            "text": "Fictional geometric postcard for offline parser tests."
+          },
+          "taken_at": 1767225600
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "data": {
+    "xdt_api__v1__media__shortcode__web_info": {
+      "items": [
+        {
+          "id": "fictional-reel-root",
+          "code": "unifetch-raw-reel",
+          "media_type": 2,
+          "product_type": "clips",
+          "video_versions": [
+            {
+              "url": "https://media.invalid/unifetch/reel-medium.mp4",
+              "width": 720,
+              "height": 1280
+            },
+            {
+              "url": "https://media.invalid/unifetch/reel-low.mp4",
+              "width": 360,
+              "height": 640
+            },
+            {
+              "url": "https://media.invalid/unifetch/reel-high.mp4",
+              "width": 1080,
+              "height": 1920
+            }
+          ],
+          "image_versions2": {
+            "candidates": [
+              {
+                "url": "https://media.invalid/unifetch/reel-thumbnail-medium.jpg",
+                "width": 640,
+                "height": 480
+              },
+              {
+                "url": "https://media.invalid/unifetch/reel-thumbnail-high.jpg",
+                "width": 1600,
+                "height": 1200
+              },
+              {
+                "url": "https://media.invalid/unifetch/reel-thumbnail-low.jpg",
+                "width": 320,
+                "height": 240
+              }
+            ]
+          },
+          "user": {
+            "username": "unifetch_schema_demo",
+            "full_name": "Fictional Schema Studio"
+          },
+          "caption": {
+            "text": "Fictional motion study for an offline Reel fixture."
+          },
+          "taken_at": 1767225600
+        }
+      ]
+    }
+  }
+}

@@ -22,6 +22,14 @@ Explicit paste + Resolve (or an explicit OS share) → supported URL parsing →
 
 The `/share` route reads its query, extracts one URL, replaces the browser route with `/`, then calls the same resolution store as manual input. No share payload is persisted.
 
+## Offline Instagram parsing (M4A)
+
+Future Instagram live resolution is separated into Acquisition → Parser → Normalizer → ResolveResult. M4A implements Parser + Normalizer only, exposed through `@unifetch/meta-resolver/instagram`. `parseInstagramMediaResponse(raw, expectedShortcode)` defensively reads the supplied structured response and preserves valid media candidates and carousel order. `normalizeInstagramMedia(media, canonicalUrl)` selects the largest pixel-area candidates and maps them to the existing core types with stable filenames and an offline trace.
+
+Sanitized raw-response fixtures are separate from the UI fixtures, under `packages/meta-resolver/src/instagram/__fixtures__/`, and use only synthetic `media.invalid` URLs. Complete positive dimensions take precedence over incomplete dimensions; area ties and unknown areas retain source order. Invalid candidates are filtered, but malformed carousel children fail the whole parse rather than silently changing its item order. Missing structures produce `PARSER_OUTDATED`; explicit empty content produces `CONTENT_UNAVAILABLE`. Optional owner, caption and timestamp fields may be absent or malformed. Valid timestamps map to ISO strings. The supplied shortcode is authoritative.
+
+No acquisition, live request path or production resolver integration is added. Normalization reports local processing, no proxy, no credential export and an empty network trace. The UI demo and arbitrary live-URL behavior remain unchanged; live acquisition and accurate live network traces are deferred to M4B/M4C.
+
 ## PWA
 
 vite-plugin-pwa generates the manifest and service worker. Shell resources are precached; demo assets are excluded, runtime caching is empty, and `/share`/`/demo` navigation fallbacks are denied. Fixed fictional fixture metadata is compiled into application JavaScript. Static hosting must route `/share` to the HTML shell without caching share query data. The shell works offline after installation, but demo media has no intentional offline archive. Browser HTTP cache remains under browser/host control.

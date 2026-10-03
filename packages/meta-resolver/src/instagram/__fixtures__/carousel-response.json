@@ -1,0 +1,133 @@
+{
+  "data": {
+    "xdt_api__v1__media__shortcode__web_info": {
+      "items": [
+        {
+          "id": "fictional-carousel-root",
+          "code": "unifetch-raw-carousel",
+          "media_type": 8,
+          "product_type": "carousel_container",
+          "carousel_media": [
+            {
+              "id": "fictional-child-1",
+              "media_type": 1,
+              "image_versions2": {
+                "candidates": [
+                  {
+                    "url": "https://media.invalid/unifetch/carousel-1-medium.jpg",
+                    "width": 640,
+                    "height": 480
+                  },
+                  {
+                    "url": "https://media.invalid/unifetch/carousel-1-high.jpg",
+                    "width": 1600,
+                    "height": 1200
+                  },
+                  {
+                    "url": "https://media.invalid/unifetch/carousel-1-low.jpg",
+                    "width": 320,
+                    "height": 240
+                  }
+                ]
+              }
+            },
+            {
+              "id": "fictional-child-2",
+              "media_type": 1,
+              "image_versions2": {
+                "candidates": [
+                  {
+                    "url": "https://media.invalid/unifetch/carousel-2-medium.jpg",
+                    "width": 640,
+                    "height": 480
+                  },
+                  {
+                    "url": "https://media.invalid/unifetch/carousel-2-high.jpg",
+                    "width": 1600,
+                    "height": 1200
+                  },
+                  {
+                    "url": "https://media.invalid/unifetch/carousel-2-low.jpg",
+                    "width": 320,
+                    "height": 240
+                  }
+                ]
+              }
+            },
+            {
+              "id": "fictional-child-3",
+              "media_type": 2,
+              "image_versions2": {
+                "candidates": [
+                  {
+                    "url": "https://media.invalid/unifetch/carousel-3-medium.jpg",
+                    "width": 640,
+                    "height": 480
+                  },
+                  {
+                    "url": "https://media.invalid/unifetch/carousel-3-high.jpg",
+                    "width": 1600,
+                    "height": 1200
+                  },
+                  {
+                    "url": "https://media.invalid/unifetch/carousel-3-low.jpg",
+                    "width": 320,
+                    "height": 240
+                  }
+                ]
+              },
+              "video_versions": [
+                {
+                  "url": "https://media.invalid/unifetch/carousel-3-medium.mp4",
+                  "width": 720,
+                  "height": 1280
+                },
+                {
+                  "url": "https://media.invalid/unifetch/carousel-3-low.mp4",
+                  "width": 360,
+                  "height": 640
+                },
+                {
+                  "url": "https://media.invalid/unifetch/carousel-3-high.mp4",
+                  "width": 1080,
+                  "height": 1920
+                }
+              ]
+            },
+            {
+              "id": "fictional-child-4",
+              "media_type": 1,
+              "image_versions2": {
+                "candidates": [
+                  {
+                    "url": "https://media.invalid/unifetch/carousel-4-medium.jpg",
+                    "width": 640,
+                    "height": 480
+                  },
+                  {
+                    "url": "https://media.invalid/unifetch/carousel-4-high.jpg",
+                    "width": 1600,
+                    "height": 1200
+                  },
+                  {
+                    "url": "https://media.invalid/unifetch/carousel-4-low.jpg",
+                    "width": 320,
+                    "height": 240
+                  }
+                ]
+              }
+            }
+          ],
+          "user": {
+            "username": "unifetch_schema_demo",
+            "full_name": "Fictional Schema Studio"
+          },
+          "caption": {
+            "text": "Four fictional color studies in source order."
+          },
+          "taken_at": 1767225600
+        }
+      ]
+    }
+  }
+}
