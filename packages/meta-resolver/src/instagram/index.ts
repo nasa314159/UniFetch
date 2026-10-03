@@ -21,3 +21,8 @@ export {
   type InstagramAcquisitionAdapter,
   type InstagramAcquisitionResult,
 } from './acquisition';
+export {
+  createInstagramResolver,
+  type InstagramResolutionResult,
+  type ResolutionSource,
+} from './resolver';

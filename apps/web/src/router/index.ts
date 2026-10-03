@@ -5,6 +5,14 @@ export const router = createRouter({
   routes: [
     { path: '/', component: HomeView },
     { path: '/share', component: HomeView },
+    ...(import.meta.env.DEV
+      ? [
+          {
+            path: '/dev/instagram-probe',
+            component: () => import('../dev/InstagramProbeView.vue'),
+          },
+        ]
+      : []),
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 });

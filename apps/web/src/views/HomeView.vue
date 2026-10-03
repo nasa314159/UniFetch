@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { parseSharedPayload } from '@unifetch/share-target';
 import { UniFetchError } from '@unifetch/core';
 import { useResolutionStore } from '../stores/resolution';
+import { resolutionErrorMessage } from '../error-messages';
 import ResultPanel from '../components/ResultPanel.vue';
 const store = useResolutionStore();
 const input = ref('');
@@ -66,7 +67,7 @@ watch(
   <section class="input-card" aria-label="Resolve media">
     <div class="card-top">
       <label for="source-url">Paste an Instagram URL</label
-      ><span class="fixture-badge">FIXTURE DEMO</span>
+      ><span class="fixture-badge">PREVIEW</span>
     </div>
     <form @submit.prevent="submit">
       <div class="input-wrap">
@@ -127,7 +128,7 @@ watch(
     </p>
     <section v-if="store.state === 'ERROR'" class="error-card" role="alert">
       <strong>We couldn’t resolve this link</strong>
-      <p>{{ store.error?.message }}</p>
+      <p>{{ store.error ? resolutionErrorMessage(store.error) : '' }}</p>
       <code>{{ store.error?.code }}</code>
     </section>
     <ResultPanel
@@ -168,9 +169,9 @@ watch(
     <div>
       <h2>A little more transparency.</h2>
       <p>
-        This preview uses fictional posts and original local media. Live
-        Instagram resolution isn’t available yet. Nothing you paste is stored,
-        and no Instagram requests are made.
+        Demo buttons use fictional posts and original local media. Other post
+        and Reel links attempt direct Instagram resolution, which browsers may
+        block. Nothing you paste is stored, and there is no remote proxy.
       </p>
     </div>
   </aside>

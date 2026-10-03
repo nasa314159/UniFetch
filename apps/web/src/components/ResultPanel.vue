@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { asUniFetchError, type ResolveResult } from '@unifetch/core';
+import { asUniFetchError } from '@unifetch/core';
+import type { InstagramResolutionResult } from '@unifetch/meta-resolver';
 import { downloadSequential } from '@unifetch/downloader';
 import { WebRuntime } from '@unifetch/runtime-web';
-const props = defineProps<{ result: ResolveResult }>();
+const props = defineProps<{ result: InstagramResolutionResult }>();
 const selected = ref(props.result.post.assets.map((asset) => asset.id));
 const downloading = ref(false);
 const notice = ref('');
 const contentType = computed(() =>
-  props.result.post.assets.length > 1
+  props.result.kind === 'carousel'
     ? 'Carousel'
-    : props.result.post.canonicalUrl.includes('/reel/')
+    : props.result.kind === 'video' &&
+        props.result.post.canonicalUrl.includes('/reel/')
       ? 'Reel'
       : 'Post',
 );
@@ -39,6 +41,10 @@ async function download(ids: string[]) {
         ><span aria-hidden="true">✓</span> Ready to save</span
       ><span class="type-label">Instagram · {{ contentType }}</span>
     </div>
+    <p class="source-label">
+      Resolution source:
+      {{ result.source === 'fixture' ? 'Demo fixture' : 'Live Instagram' }}
+    </p>
     <div v-if="result.post.author" class="author">
       <div class="avatar" aria-hidden="true">U</div>
       <div>
@@ -46,7 +52,10 @@ async function download(ids: string[]) {
           result.post.author.displayName || result.post.author.username
         }}</strong
         ><span v-if="result.post.author.username"
-          >@{{ result.post.author.username }} · Fictional demo</span
+          >@{{ result.post.author.username
+          }}<template v-if="result.source === 'fixture'">
+            · Fictional demo</template
+          ></span
         >
       </div>
     </div>
@@ -64,7 +73,7 @@ async function download(ids: string[]) {
           <img
             v-if="asset.type === 'image'"
             :src="asset.url"
-            :alt="`Original demo artwork ${index + 1}`"
+            :alt="`${result.source === 'fixture' ? 'Original demo artwork' : 'Instagram image'} ${index + 1}`"
             loading="lazy"
           /><video
             v-else-if="asset.type === 'video'"
@@ -73,7 +82,7 @@ async function download(ids: string[]) {
             controls
             playsinline
             preload="none"
-            :aria-label="`Demo video ${index + 1}`"
+            :aria-label="`${result.source === 'fixture' ? 'Demo video' : 'Instagram video'} ${index + 1}`"
           ></video
           ><audio v-else :src="asset.url" controls preload="none"></audio>
         </div>
@@ -159,10 +168,11 @@ async function download(ids: string[]) {
           {{ record.origin }} · {{ record.purpose }}
         </li>
       </ul>
-      <p v-else>
+      <p v-else-if="result.source === 'fixture'">
         None. Fixture metadata is bundled locally. No real Instagram request
         occurred. Previews and downloads use local files served by this app.
       </p>
+      <p v-else>No network origins were reported by the acquisition runtime.</p>
     </details>
   </section>
 </template>
@@ -193,6 +203,11 @@ async function download(ids: string[]) {
 .type-label {
   font-size: 10px;
   color: var(--muted);
+}
+.source-label {
+  color: var(--muted);
+  font-size: 10px;
+  margin: 14px 0 0;
 }
 .author {
   display: flex;

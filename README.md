@@ -2,9 +2,9 @@
 
 Save media you can already access. Locally. Transparently.
 
-UniFetch is an open-source, local-first web interface that acts on one URL explicitly supplied by the user. This initial M0–M3 milestone is a polished static Vue application and installable PWA.
+UniFetch is an open-source, local-first web interface that acts on one URL explicitly supplied by the user. It is a static Vue application and installable PWA with a deterministic demo and a layered Instagram resolution pipeline.
 
-**This milestone uses deterministic Instagram fixtures while the live resolver is implemented separately. Live Instagram resolution and downloading are not implemented.** Arbitrary real Instagram links produce an explicit `UNSUPPORTED_CONTENT` error. No real Instagram network requests occur.
+**M4C wires live Instagram URL handling into acquisition → parser → normalizer → result, while keeping deterministic demo fixtures separate.** Ordinary WebRuntime cannot access Instagram’s cross-origin session context from the UniFetch origin and returns `BROWSER_RESTRICTION` before bootstrap. Real-browser checks confirmed this restriction; one user-supplied public image post, one public carousel and one public Reel each returned `BROWSER_RESTRICTION`. None succeeded, and no live media download was tested. Live downloading is not claimed to work. There is no remote proxy fallback.
 
 ## Try the demo
 
@@ -34,7 +34,7 @@ pnpm --filter @unifetch/web preview
 ## Architecture
 
 - `@unifetch/core`: domain types, typed errors, Zod input validation, URL normalization, runtime/resolver contracts and registry.
-- `@unifetch/meta-resolver`: deterministic Instagram fixture resolver. It never calls global fetch or the runtime network adapter.
+- `@unifetch/meta-resolver`: separate fixture and live paths; content references, one supplied unstable acquisition profile, defensive parser and normalizer. Only the runtime owns transport.
 - `@unifetch/runtime-web`: a small browser runtime with credential-free, same-origin requests and local downloads.
 - `@unifetch/downloader`: browser-native local downloads, sequential for multiple assets.
 - `@unifetch/share-target`: HTTP(S) supported-link extraction with URL → text → title priority.
@@ -54,12 +54,17 @@ Serve `apps/web/dist` on HTTPS (localhost works for development). Configure stat
 
 Install and share-target support depend on the browser and OS. Where supported, an Install app button appears. On other platforms use the browser's installation menu. Browser-native multiple downloads may require browser permission. Share requests can reach the static host before the app scrubs them, so configure hosting logs appropriately; this app cannot control browser history, HTTP caches or hosting logs. `/share` is excluded from service-worker navigation fallback. GET shares therefore require connectivity on hosts that rely on a routing fallback.
 
+## Developer-only manual probe
+
+With `pnpm dev`, open `/dev/instagram-probe`. Supply exactly one public image-post URL, one public carousel URL and one public Reel URL, then explicitly run the three probes. Inputs clear on submission and remain transient; the harness displays only typed status, or successful kind/count/types. Nothing is logged or persisted. The route and harness are removed from production builds. Do not add real identifiers or captured payloads to source, tests, docs or fixtures.
+
 ## Limitations and roadmap
 
-- Instagram Post, Carousel, Reel: fixture/demo only.
+- Instagram Post, Carousel, Reel: demo is reliable; live pipeline accepts `/p/`, `/reel/` and `/reels/` paths, but WebRuntime is restricted by origin/session policy.
 - Stories: not supported.
 - Facebook and Threads: detected; planned, no resolver.
-- Future: separately implemented live Instagram resolver and extension/native runtime adapters, subject to platform access controls and the same trust boundaries.
+- Future: ExtensionRuntime or NativeRuntime may provide broader local capabilities, subject to platform access controls and the same trust boundaries. Neither is implemented.
+- Downloads reuse the existing browser-native flow. The current downloader rejects non-local demo assets with `BROWSER_RESTRICTION`; no successful live media download has been validated.
 - No crawling, bulk enumeration, authentication bypass, ZIP creation, audio extraction or transcoding.
 
 Only an explicit resolve/share action processes a URL. Only an explicit download action saves media. Review [privacy](docs/privacy-model.md), [threat model](docs/threat-model.md) and [supported content](docs/supported-content.md).

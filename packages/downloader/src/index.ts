@@ -13,7 +13,7 @@ export async function downloadLocalAsset(asset: MediaAsset): Promise<void> {
   )
     throw new UniFetchError(
       'BROWSER_RESTRICTION',
-      'Only local demo assets can be downloaded in this milestone.',
+      'This browser cannot save this media directly. No remote download proxy is used.',
     );
   const anchor = document.createElement('a');
   anchor.href = url.href;

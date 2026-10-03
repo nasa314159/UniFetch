@@ -39,14 +39,12 @@ describe('Deterministic Instagram fixtures', () => {
       height: 960,
     });
   });
-  it('rejects arbitrary live Instagram URLs explicitly', async () => {
+  it('reports runtime restriction for arbitrary live Instagram URLs', async () => {
     await expect(
       resolver.resolve('https://instagram.com/p/REAL123/'),
     ).rejects.toMatchObject({
-      code: 'UNSUPPORTED_CONTENT',
-      message: expect.stringContaining(
-        'Live Instagram resolution is not implemented',
-      ),
+      code: 'BROWSER_RESTRICTION',
+      message: expect.stringContaining('runtime cannot prepare'),
     });
   });
   it.each(['image', 'carousel', 'reel'])(
