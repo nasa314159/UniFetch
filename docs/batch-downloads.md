@@ -1,0 +1,13 @@
+# Batch downloads
+
+The pre-M7D loop awaited each runtime download without per-asset error handling. A rejection stopped the remaining attempts. Its `BROWSER_RESTRICTION` came from direct-source fetch rejection or an unreadable response; browsers do not expose whether that rejection was CORS or a network failure. A silently ignored anchor click cannot be diagnosed from a final saved-file count. The original device-specific trigger was not isolated; successful manual saving does not prove whether the original failure was fetch rejection, gesture handling, or object-URL timing.
+
+Each requested asset now prepares independently and retains its original post ordinal and M7A filename/JPEG policy. One failure does not stop later attempts. Other browsers keep sequential direct-source fetch/Blob/anchor dispatch. A conservative, isolated iOS/iPadOS guard prepares all files first and shows one explicit Save action per file, so each click runs synchronously in a fresh gesture. This fallback does not assert that iOS caused a fetch failure. No tabs or popups open automatically.
+
+The app cannot observe files saved by a browser. A dispatched click is **requested**, not **downloaded**. Check Downloads, then select **Confirm saved** for that file. Only these confirmations count toward “Downloaded N of N.” Unconfirmed requests can be saved again; failed preparation can be retried independently. Open original remains available separately and is not counted as saved.
+
+Prepared Blobs remain in memory until confirmed, replaced by another batch, or the result is removed. Each dispatched object URL is revoked after 60 seconds, including failed clicks. No files or history are persisted. Metadata Resolver, media source paths, credentials policy, Android Share Target, and iOS Shortcut behavior are unchanged. No media relay or ZIP is added.
+
+Expandable local diagnostics show ordinal, fetch outcome, final Blob MIME/size, object-URL creation and click attempt, and per-asset status. They do not log URLs, captions, usernames, or credentials. On an iPhone/iPad, test selected and all separately: prepare four, Save each, check four files and `_01`–`_04`, then confirm each. Also test selection #2/#4 (`_02`, `_04`). Retest a carousel on Android because the shared download path changed. Record counts and failed asset diagnostics only; do not share media URLs. Physical validation is required before the M7D checkpoint.
+
+Physical M7D validation confirmed: iPad/iPhone requested four carousel images, saved zero automatically and all four through explicit Save actions, with `_01.jpg`–`_04.jpg` preserved. Download selected (4) and Download all both worked without asset failures. The vivo Android multi-image download regression and UniFetch Share Target also passed.

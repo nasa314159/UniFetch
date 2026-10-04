@@ -1,5 +1,6 @@
 import {
   UniFetchError,
+  asUniFetchError,
   type MediaAsset,
   type RuntimeAdapter,
 } from '@unifetch/core';
@@ -13,6 +14,28 @@ export {
 } from './filename';
 export type { FilenameInput } from './filename';
 export { normalizeStillImage } from './image-normalization';
+
+export * from './batch';
+import type { BatchDownloadResult } from './batch';
+
+export interface DownloadDiagnostics {
+  fetch: 'not-attempted' | 'succeeded' | 'failed' | 'opaque' | 'http-failed';
+  blobMime?: string;
+  blobSize?: number;
+  objectUrlCreated: boolean;
+  anchorClickAttempted: boolean;
+}
+export interface PreparedDownload {
+  blob: Blob;
+  filename: string;
+  formatFallback: boolean;
+}
+export type PrepareDownloadResult =
+  | { status: 'ready'; file: PreparedDownload }
+  | Exclude<
+      DownloadAttemptResult,
+      { status: 'requested' } | { status: 'navigation-requested' }
+    >;
 
 export type DownloadAttemptResult =
   | { status: 'requested'; formatFallback?: boolean }
@@ -38,15 +61,21 @@ export function originalMediaUrl(input: string): string {
     throw new UniFetchError('BROWSER_RESTRICTION', 'The media URL is unsafe.');
   return url.href;
 }
-function clickAnchor(url: string, filename: string, newTab = false): void {
+function clickAnchor(
+  url: string,
+  filename: string,
+  newTab = false,
+  diagnostics?: DownloadDiagnostics,
+): void {
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = filename;
   anchor.rel = 'noopener noreferrer';
   anchor.referrerPolicy = 'no-referrer';
   if (newTab) anchor.target = '_blank';
-  document.body.append(anchor);
   try {
+    document.body.append(anchor);
+    if (diagnostics) diagnostics.anchorClickAttempted = true;
     anchor.click();
   } finally {
     anchor.remove();
@@ -61,10 +90,11 @@ export function attemptAnchorDownload(
   clickAnchor(url, asset.suggestedFilename, crossOrigin);
   return { status: crossOrigin ? 'navigation-requested' : 'requested' };
 }
-/** Fetch only the direct source. Browser CORS remains enforced; there is no relay fallback. */
-export async function attemptBlobDownload(
+/** Fetch only the direct source. CORS remains enforced; there is no relay fallback. */
+export async function prepareBlobDownload(
   asset: MediaAsset,
-): Promise<DownloadAttemptResult> {
+  diagnostics?: DownloadDiagnostics,
+): Promise<PrepareDownloadResult> {
   const url = originalMediaUrl(asset.url);
   let response: Response;
   try {
@@ -75,41 +105,75 @@ export async function attemptBlobDownload(
       referrerPolicy: 'no-referrer',
     });
   } catch {
-    // Fetch intentionally hides whether a rejection was CORS or a network failure.
+    if (diagnostics) diagnostics.fetch = 'failed';
     return { status: 'browser-restricted', reason: 'cors-or-network' };
   }
-  if (response.type === 'opaque' || response.status === 0)
+  if (response.type === 'opaque' || response.status === 0) {
+    if (diagnostics) diagnostics.fetch = 'opaque';
     return { status: 'browser-restricted', reason: 'opaque' };
-  if (!response.ok) return { status: 'failed' };
-  let objectUrl: string;
-  let filename: string;
-  let formatFallback = false;
+  }
+  if (!response.ok) {
+    if (diagnostics) diagnostics.fetch = 'http-failed';
+    return { status: 'failed' };
+  }
+  if (diagnostics) diagnostics.fetch = 'succeeded';
   try {
     const source = await response.blob();
     const normalized =
       asset.type === 'image'
         ? await normalizeStillImage(source)
         : { blob: source, fallback: false };
-    formatFallback = normalized.fallback;
-    filename = finalizeDownloadFilename(
-      asset.suggestedFilename,
-      normalized.blob.type,
-    );
-    objectUrl = URL.createObjectURL(normalized.blob);
+    if (diagnostics) {
+      diagnostics.blobMime = normalized.blob.type;
+      diagnostics.blobSize = normalized.blob.size;
+    }
+    return {
+      status: 'ready',
+      file: {
+        blob: normalized.blob,
+        filename: finalizeDownloadFilename(
+          asset.suggestedFilename,
+          normalized.blob.type,
+        ),
+        formatFallback: normalized.fallback,
+      },
+    };
   } catch {
     return { status: 'failed' };
   }
+}
+/** Synchronous dispatch lets an explicit Save gesture use a previously prepared Blob. */
+export function dispatchPreparedDownload(
+  file: PreparedDownload,
+  diagnostics?: DownloadDiagnostics,
+): DownloadAttemptResult {
+  let objectUrl: string | undefined;
   try {
-    clickAnchor(objectUrl, filename);
-    return formatFallback
+    objectUrl = URL.createObjectURL(file.blob);
+    if (diagnostics) {
+      diagnostics.objectUrlCreated = true;
+    }
+    clickAnchor(objectUrl, file.filename, false, diagnostics);
+    return file.formatFallback
       ? { status: 'requested', formatFallback: true }
       : { status: 'requested' };
   } catch {
     return { status: 'failed' };
   } finally {
-    // Leave time for the browser to consume the link, then release the in-memory file.
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    // Allow slow mobile browsers to consume the link. Every dispatch has bounded cleanup.
+    if (objectUrl) {
+      const disposable = objectUrl;
+      setTimeout(() => URL.revokeObjectURL(disposable), 60_000);
+    }
   }
+}
+export async function attemptBlobDownload(
+  asset: MediaAsset,
+): Promise<DownloadAttemptResult> {
+  const prepared = await prepareBlobDownload(asset);
+  return prepared.status === 'ready'
+    ? dispatchPreparedDownload(prepared.file)
+    : prepared;
 }
 /** Still images use readable Blob fetch and client-side JPEG normalization, including fixtures. */
 export async function downloadLocalAsset(
@@ -136,10 +200,30 @@ export async function downloadLocalAsset(
 export async function downloadSequential(
   assets: readonly MediaAsset[],
   runtime: RuntimeAdapter,
-): Promise<void> {
-  for (const asset of assets) {
-    await runtime.download(asset);
+): Promise<BatchDownloadResult> {
+  const results: BatchDownloadResult['results'] = [];
+  for (const [index, asset] of assets.entries()) {
+    try {
+      await runtime.download(asset);
+      results.push({
+        index,
+        status: 'requested',
+        filename: asset.suggestedFilename,
+      });
+    } catch (cause) {
+      const error = asUniFetchError(cause);
+      results.push({
+        index,
+        status:
+          error.code === 'BROWSER_RESTRICTION'
+            ? 'browser-restricted'
+            : 'failed',
+        errorCode: error.code,
+        filename: asset.suggestedFilename,
+      });
+    }
     if (assets.length > 1)
       await new Promise((resolve) => setTimeout(resolve, 350));
   }
+  return { requested: assets.length, completed: 0, results };
 }

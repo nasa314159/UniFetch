@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import type { MediaAsset } from '@unifetch/core';
 import {
+  prepareBlobDownload,
+  dispatchPreparedDownload,
+  type DownloadDiagnostics,
   attemptAnchorDownload,
   attemptBlobDownload,
   downloadLocalAsset,
@@ -201,6 +204,81 @@ describe('Direct browser downloads', () => {
   ])('rejects unsafe original URL %s', (url) => {
     expect(() => originalMediaUrl(url)).toThrow();
     expect(fetcher).not.toHaveBeenCalled();
+  });
+  it('separates preparation from a synchronous Save gesture with safe diagnostics', async () => {
+    fetcher.mockResolvedValue(
+      new Response(new Blob(['fictional jpeg'], { type: 'image/jpeg' })),
+    );
+    const diagnostics: DownloadDiagnostics = {
+      fetch: 'not-attempted',
+      objectUrlCreated: false,
+      anchorClickAttempted: false,
+    };
+    const prepared = await prepareBlobDownload(asset, diagnostics);
+    expect(prepared.status).toBe('ready');
+    expect(diagnostics).toEqual({
+      fetch: 'succeeded',
+      blobMime: 'image/jpeg',
+      blobSize: 14,
+      objectUrlCreated: false,
+      anchorClickAttempted: false,
+    });
+    expect(anchor.click).not.toHaveBeenCalled();
+    expect(URL.createObjectURL).not.toHaveBeenCalled();
+    if (prepared.status !== 'ready') throw new Error('Expected prepared file');
+    expect(dispatchPreparedDownload(prepared.file, diagnostics).status).toBe(
+      'requested',
+    );
+    expect(anchor.click).toHaveBeenCalledOnce();
+    expect(diagnostics).toMatchObject({
+      objectUrlCreated: true,
+      anchorClickAttempted: true,
+    });
+    expect(JSON.stringify(diagnostics)).not.toContain(asset.url);
+    expect(fetcher).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(59_999);
+    expect(revoke).not.toHaveBeenCalled();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(revoke).toHaveBeenCalledExactlyOnceWith('blob:fictional');
+  });
+  it('diagnoses failed preparation before any object URL or anchor exists', async () => {
+    fetcher.mockRejectedValue(new TypeError('Failed to fetch'));
+    const diagnostics: DownloadDiagnostics = {
+      fetch: 'not-attempted',
+      objectUrlCreated: false,
+      anchorClickAttempted: false,
+    };
+    expect(await prepareBlobDownload(asset, diagnostics)).toMatchObject({
+      status: 'browser-restricted',
+      reason: 'cors-or-network',
+    });
+    expect(diagnostics).toEqual({
+      fetch: 'failed',
+      objectUrlCreated: false,
+      anchorClickAttempted: false,
+    });
+    expect(anchor.click).not.toHaveBeenCalled();
+  });
+  it('distinguishes successful fetch from Blob reading failure', async () => {
+    fetcher.mockResolvedValue({
+      ok: true,
+      type: 'cors',
+      status: 200,
+      blob: async () => {
+        throw new Error('body unreadable');
+      },
+    } as Response);
+    const diagnostics: DownloadDiagnostics = {
+      fetch: 'not-attempted',
+      objectUrlCreated: false,
+      anchorClickAttempted: false,
+    };
+    expect(await prepareBlobDownload(asset, diagnostics)).toEqual({
+      status: 'failed',
+    });
+    expect(diagnostics.fetch).toBe('succeeded');
+    expect(diagnostics.blobSize).toBeUndefined();
+    expect(anchor.click).not.toHaveBeenCalled();
   });
   it('retains the direct original URL', () => {
     expect(originalMediaUrl(asset.url)).toBe(asset.url);

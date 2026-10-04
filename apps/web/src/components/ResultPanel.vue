@@ -1,17 +1,55 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, shallowRef, onBeforeUnmount, watch } from 'vue';
 import { asUniFetchError } from '@unifetch/core';
 import type { InstagramResolutionResult } from '@unifetch/meta-resolver';
 import {
-  downloadSequential,
+  createDownloadBatch,
+  selectDownloadEntries,
+  requiresIndividualSave,
+  type BatchDownloadResult,
   originalMediaUrl,
   createDownloadFilename,
 } from '@unifetch/downloader';
 import { WebRuntime } from '@unifetch/runtime-web';
+import SaveQueue from './SaveQueue.vue';
 const props = defineProps<{ result: InstagramResolutionResult }>();
 const selected = ref(props.result.post.assets.map((asset) => asset.id));
 const downloading = ref(false);
 const notice = ref('');
+const batchResult = shallowRef<BatchDownloadResult>();
+let batch: ReturnType<typeof createDownloadBatch> | undefined;
+let generation = 0;
+const preparedIndices = computed(
+  () =>
+    batchResult.value?.results
+      .filter((item) => batch?.hasPrepared(item.index))
+      .map((item) => item.index) ?? [],
+);
+function clearBatch() {
+  generation++;
+  batch?.dispose();
+  batch = undefined;
+  batchResult.value = undefined;
+  downloading.value = false;
+  notice.value = '';
+}
+watch(
+  () => props.result,
+  () => {
+    clearBatch();
+    selected.value = props.result.post.assets.map((asset) => asset.id);
+  },
+);
+onBeforeUnmount(clearBatch);
+function saveAsset(index: number) {
+  batch?.save(index);
+}
+function confirmAsset(index: number) {
+  batch?.confirm(index);
+}
+async function retryAsset(index: number) {
+  await batch?.retry(index);
+}
 function originalLink(input: string): string | undefined {
   try {
     return originalMediaUrl(input);
@@ -28,39 +66,52 @@ const contentType = computed(() =>
       : 'Post',
 );
 async function download(ids: string[]) {
+  clearBatch();
+  const currentGeneration = generation;
   downloading.value = true;
-  notice.value = '';
-  let formatFallback = false;
+  const assets = props.result.post.assets.map((asset, index) => ({
+    ...asset,
+    suggestedFilename: createDownloadFilename({
+      platform: props.result.post.platform,
+      username: props.result.post.author?.username,
+      caption: props.result.post.caption,
+      assetIndex: index,
+      assetCount: props.result.post.assets.length,
+      mediaType: asset.type,
+      mimeType: asset.mimeType,
+      contentKind: contentType.value === 'Reel' ? 'reel' : 'post',
+    }),
+  }));
+  const entries = selectDownloadEntries(assets, ids);
   try {
-    await downloadSequential(
-      props.result.post.assets
-        .map((asset, index) => ({
-          ...asset,
-          suggestedFilename: createDownloadFilename({
-            platform: props.result.post.platform,
-            username: props.result.post.author?.username,
-            caption: props.result.post.caption,
-            assetIndex: index,
-            assetCount: props.result.post.assets.length,
-            mediaType: asset.type,
-            mimeType: asset.mimeType,
-            contentKind: contentType.value === 'Reel' ? 'reel' : 'post',
-          }),
-        }))
-        .filter((asset) => ids.includes(asset.id)),
-      new WebRuntime((result) => {
+    // A single-image post retains M7A's direct download behavior.
+    if (props.result.post.assets.length === 1 && entries[0]) {
+      let formatFallback = false;
+      await new WebRuntime((result) => {
         if (result.status === 'requested' && result.formatFallback)
           formatFallback = true;
-      }),
-    );
-    notice.value = formatFallback
-      ? 'Download requested. An image was kept in its original format.'
-      : 'Download requested.';
+      }).download(entries[0].asset);
+      if (generation === currentGeneration)
+        notice.value = formatFallback
+          ? 'Download requested. An image was kept in its original format.'
+          : 'Download requested.';
+    } else {
+      batch = createDownloadBatch(entries, {
+        manual:
+          typeof navigator !== 'undefined' && requiresIndividualSave(navigator),
+        onChange: (result) => {
+          batchResult.value = result;
+        },
+      });
+      await batch.run();
+    }
   } catch (cause) {
-    const error = asUniFetchError(cause);
-    notice.value = `${error.message} (${error.code})`;
+    if (generation === currentGeneration) {
+      const error = asUniFetchError(cause);
+      notice.value = `${error.message} (${error.code})`;
+    }
   } finally {
-    downloading.value = false;
+    if (generation === currentGeneration) downloading.value = false;
   }
 }
 </script>
@@ -161,7 +212,7 @@ async function download(ids: string[]) {
         >
           {{
             downloading
-              ? 'Requesting downloads…'
+              ? 'Preparing files…'
               : `Download selected (${selected.length})`
           }}
           <span aria-hidden="true">↓</span></button
@@ -182,6 +233,14 @@ async function download(ids: string[]) {
         <span aria-hidden="true">↓</span>
       </button>
     </div>
+    <SaveQueue
+      v-if="batchResult"
+      :result="batchResult"
+      :prepared-indices="preparedIndices"
+      @save="saveAsset"
+      @confirm="confirmAsset"
+      @retry="retryAsset"
+    />
     <p v-if="result.source !== 'fixture'" class="download-notice">
       Download reads the source directly when its cross-origin rules allow it.
       Open original opens the source file without claiming it was saved.
