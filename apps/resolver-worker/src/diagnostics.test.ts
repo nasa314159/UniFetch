@@ -210,7 +210,7 @@ describe('Internal Worker diagnostics and HTTP classification', () => {
       }),
     );
     expect((await (await worker.fetch(request(), env)).json()).error.code).toBe(
-      'PARSER_OUTDATED',
+      'GRAPHQL_EXECUTION_ERROR',
     );
     expect(records).toContainEqual(
       expect.objectContaining({
@@ -225,7 +225,7 @@ describe('Internal Worker diagnostics and HTTP classification', () => {
     expect(JSON.stringify(records)).not.toContain('synthetic challenge');
   });
   it.each(['{}', '{"data":{"unexpected":true}}'])(
-    'passes unexpected structured responses to the M4A parser',
+    'keeps absent media semantics separate from parser failure',
     async (body) => {
       const { worker, records } = setup(
         bootstrap(),
@@ -233,11 +233,11 @@ describe('Internal Worker diagnostics and HTTP classification', () => {
       );
       expect(
         (await (await worker.fetch(request(), env)).json()).error.code,
-      ).toBe('PARSER_OUTDATED');
+      ).toBe('UNKNOWN');
       expect(records).toContainEqual(
         expect.objectContaining({
-          stage: 'PARSER',
-          category: 'PARSER_OUTDATED',
+          stage: 'GRAPHQL_CLASSIFICATION',
+          category: 'UNKNOWN',
         }),
       );
     },
@@ -250,7 +250,7 @@ describe('Internal Worker diagnostics and HTTP classification', () => {
       }),
     );
     expect((await (await worker.fetch(request(), env)).json()).error.code).toBe(
-      'PARSER_OUTDATED',
+      'GRAPHQL_EXECUTION_ERROR',
     );
     expect(records).toContainEqual(
       expect.objectContaining({ stage: 'RESPONSE_READ', bodyKind: 'JSON' }),
@@ -371,7 +371,7 @@ describe('Internal Worker diagnostics and HTTP classification', () => {
     const body = await (await diagnosticWorker.fetch(request(), env)).json();
     expect(body.ok).toBe(true);
     expect(body).not.toHaveProperty('result');
-    expect(body.diagnostics).toHaveLength(7);
+    expect(body.diagnostics).toHaveLength(8);
     expect(JSON.stringify(body)).not.toContain('synthetic-private');
   });
   it('refuses diagnostic exposure on non-local deployed hosts', async () => {

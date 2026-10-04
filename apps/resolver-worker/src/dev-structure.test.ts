@@ -106,7 +106,7 @@ describe('Dev-only safe structure inspection', () => {
       }),
       { ALLOWED_ORIGINS: '' },
     );
-    expect((await response.json()).error.code).toBe('UNKNOWN');
+    expect((await response.json()).error.code).toBe('GRAPHQL_EXECUTION_ERROR');
     expect(observed).not.toContain('PARSER');
   });
 });

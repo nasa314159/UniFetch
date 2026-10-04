@@ -6,9 +6,18 @@ export type DiagnosticStage =
   | 'GRAPHQL_REQUEST'
   | 'GRAPHQL_RESPONSE'
   | 'RESPONSE_READ'
-  | 'PARSER';
+  | 'PARSER'
+  | 'GRAPHQL_CLASSIFICATION';
 export interface DiagnosticRecord {
   stage: DiagnosticStage;
+  dataPresent?: boolean;
+  dataNull?: boolean;
+  mediaRootExists?: boolean;
+  errorsPresent?: boolean;
+  errorCount?: number;
+  knownEnums?: ReturnType<
+    typeof import('@unifetch/meta-resolver/instagram').inspectInstagramGraphql
+  >['knownEnums'];
   fetchThrew?: boolean;
   exceptionName?: string;
   category?: string;

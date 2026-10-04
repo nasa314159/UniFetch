@@ -1,3 +1,4 @@
+import { inspectInstagramGraphql } from '@unifetch/meta-resolver/instagram';
 /** Bounded structural observations only. Imported by the local diagnostic entry, not production. */
 function object(value: unknown): Record<string, unknown> | undefined {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -68,26 +69,7 @@ export function inspectMediaStructure(raw: unknown) {
   const children = Array.isArray(first?.carousel_media)
     ? first.carousel_media
     : [];
-  const errors = Array.isArray(root?.errors) ? root.errors : [];
-  let errorCategory: string | undefined;
-  if (errors.length && (root?.data === null || !items)) {
-    const messages = errors
-      .map((entry) =>
-        typeof entry === 'string' ? entry : object(entry)?.message,
-      )
-      .filter((message): message is string => typeof message === 'string');
-    errorCategory = messages.some((message) =>
-      /rate[\s_-]*limit|too many requests/i.test(message),
-    )
-      ? 'RATE_LIMITED'
-      : messages.some((message) =>
-            /(?:media|content|post) (?:is |was )?(?:not found|unavailable)/i.test(
-              message,
-            ),
-          )
-        ? 'MEDIA_UNAVAILABLE'
-        : 'GRAPHQL_EXECUTION_ERROR';
-  }
+  const errorCategory = inspectInstagramGraphql(raw).category;
   return {
     root: {
       keys: keys(raw),

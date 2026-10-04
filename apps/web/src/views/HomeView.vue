@@ -4,7 +4,10 @@ import { useRoute, useRouter } from 'vue-router';
 import { parseSharedPayload } from '@unifetch/share-target';
 import { UniFetchError } from '@unifetch/core';
 import { useResolutionStore } from '../stores/resolution';
-import { resolutionErrorMessage } from '../error-messages';
+import {
+  resolutionErrorMessage,
+  resolutionErrorTitle,
+} from '../error-messages';
 import ResultPanel from '../components/ResultPanel.vue';
 const store = useResolutionStore();
 const input = ref('');
@@ -127,7 +130,11 @@ watch(
       Resolving your link…
     </p>
     <section v-if="store.state === 'ERROR'" class="error-card" role="alert">
-      <strong>We couldn’t resolve this link</strong>
+      <strong>{{
+        store.error
+          ? resolutionErrorTitle(store.error)
+          : 'We couldn’t resolve this link'
+      }}</strong>
       <p>{{ store.error ? resolutionErrorMessage(store.error) : '' }}</p>
       <code>{{ store.error?.code }}</code>
     </section>

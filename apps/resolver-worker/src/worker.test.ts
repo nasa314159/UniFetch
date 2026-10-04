@@ -277,13 +277,13 @@ describe('Metadata-only Worker API', () => {
     );
     expect((await response.json()).error.code).toBe('LOGIN_REQUIRED');
   });
-  it('classifies schema drift', async () => {
+  it('does not call an absent media root parser drift', async () => {
     const { worker } = setup({ data: { changed: true } });
     const response = await worker.fetch(
       post({ url: 'https://instagram.com/p/synthetic-drift/' }),
       env,
     );
-    expect((await response.json()).error.code).toBe('PARSER_OUTDATED');
+    expect((await response.json()).error.code).toBe('UNKNOWN');
   });
   it('classifies network failure without exception details', async () => {
     const { worker, fetcher } = setup();

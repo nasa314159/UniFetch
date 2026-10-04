@@ -26,3 +26,5 @@ export {
   type InstagramResolutionResult,
   type ResolutionSource,
 } from './resolver';
+
+export { inspectInstagramGraphql } from './graphql-errors';

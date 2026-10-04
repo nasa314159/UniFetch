@@ -92,6 +92,7 @@ export const resolverApiResponseSchema = z.discriminatedUnion('ok', [
             'RATE_LIMITED',
             'PARSER_OUTDATED',
             'NETWORK_ERROR',
+            'GRAPHQL_EXECUTION_ERROR',
             'UNKNOWN',
           ]),
           message: z.string(),

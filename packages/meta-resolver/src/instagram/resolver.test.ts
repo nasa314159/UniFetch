@@ -115,13 +115,13 @@ describe('Production Instagram pipeline integration with deterministic transport
       ).rejects.toBe(failure);
     },
   );
-  it('missing raw media schema produces PARSER_OUTDATED', async () => {
+  it('absent media semantics produce UNKNOWN', async () => {
     const { adapter } = runtime({ data: { changed: true } });
     await expect(
       createResolver(adapter).resolve(
         'https://instagram.com/p/synthetic-schema/',
       ),
-    ).rejects.toMatchObject({ code: 'PARSER_OUTDATED' });
+    ).rejects.toMatchObject({ code: 'UNKNOWN' });
   });
   it('accepts shared live-shaped URLs through the same pipeline without persistence', async () => {
     const storage = { setItem: vi.fn() };

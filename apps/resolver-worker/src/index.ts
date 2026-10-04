@@ -180,23 +180,6 @@ export function createWorker(
             { runtime: new CloudflareMetadataRuntime(fetcher, observe) },
           );
         inspect?.(acquired.raw);
-        const graphql = acquired.raw as {
-          data?: {
-            xdt_api__v1__media__shortcode__web_info?: { items?: unknown };
-          } | null;
-          errors?: unknown[];
-        } | null;
-        if (
-          Array.isArray(graphql?.errors) &&
-          graphql.errors.length &&
-          !Array.isArray(
-            graphql.data?.xdt_api__v1__media__shortcode__web_info?.items,
-          )
-        )
-          throw new UniFetchError(
-            'UNKNOWN',
-            'Instagram returned a GraphQL execution error.',
-          );
         const parserStarted = Date.now();
         let media;
         try {

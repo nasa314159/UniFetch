@@ -3,6 +3,7 @@ import {
   type ResolveContext,
   type RuntimeResponse,
 } from '@unifetch/core';
+import { inspectInstagramGraphql } from './graphql-errors';
 import type { InstagramContentRef } from './content-ref';
 import { POLARIS_POST_ROOT_PROFILE_V1 as profile } from './endpoint-profile';
 import { buildInstagramPostRootRequest } from './request-builder';
@@ -17,11 +18,6 @@ export interface InstagramAcquisitionAdapter {
     context: ResolveContext,
   ): Promise<InstagramAcquisitionResult>;
 }
-function object(value: unknown): Record<string, unknown> | undefined {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
 function fail(
   code:
     | 'RATE_LIMITED'
@@ -29,6 +25,7 @@ function fail(
     | 'CONTENT_UNAVAILABLE'
     | 'NETWORK_ERROR'
     | 'PARSER_OUTDATED'
+    | 'GRAPHQL_EXECUTION_ERROR'
     | 'UNKNOWN',
 ): never {
   const messages = {
@@ -38,6 +35,8 @@ function fail(
     CONTENT_UNAVAILABLE: 'This Instagram content is unavailable.',
     NETWORK_ERROR: 'The Instagram request could not be completed.',
     UNKNOWN: 'Instagram metadata could not be processed.',
+    GRAPHQL_EXECUTION_ERROR:
+      'Instagram returned an application-level error for this request.',
     PARSER_OUTDATED:
       'Instagram did not return a structured response recognized by this profile.',
   };
@@ -65,37 +64,10 @@ function classify(response: RuntimeResponse): unknown {
   try {
     raw = JSON.parse(new TextDecoder().decode(response.body));
   } catch {
-    fail('PARSER_OUTDATED');
+    fail('GRAPHQL_EXECUTION_ERROR');
   }
-  const result = object(raw);
-  if (result?.data != null) return raw;
-  if (result?.require_login === true || result?.login_required === true)
-    fail('LOGIN_REQUIRED');
-  const messages = Array.isArray(result?.errors)
-    ? result.errors.flatMap((error) => {
-        const message =
-          typeof error === 'string' ? error : object(error)?.message;
-        return typeof message === 'string' ? [message] : [];
-      })
-    : [];
-  if (typeof result?.message === 'string') messages.push(result.message);
-  for (const message of messages) {
-    if (/rate[\s_-]*limit|too many requests/i.test(message))
-      fail('RATE_LIMITED');
-    if (
-      /login[\s_-]*required|log[\s_-]*in (?:is )?required|authentication (?:is )?required|auth[\s_-]*required|must (?:log[\s_-]*in|authenticate|be logged in)|please log[\s_-]*in|not authenticated|requires authentication/i.test(
-        message,
-      )
-    )
-      fail('LOGIN_REQUIRED');
-    if (
-      /(?:media|content|post) (?:is |was )?(?:not found|unavailable)/i.test(
-        message,
-      )
-    )
-      fail('CONTENT_UNAVAILABLE');
-  }
-  // Unknown GraphQL execution errors are not transport failures.
+  const summary = inspectInstagramGraphql(raw);
+  if (summary.category) fail(summary.category);
   return raw;
 }
 

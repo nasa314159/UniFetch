@@ -25,6 +25,7 @@ describe('Resolution store and live error presentation', () => {
     'LOGIN_REQUIRED',
     'PARSER_OUTDATED',
     'CONTENT_UNAVAILABLE',
+    'GRAPHQL_EXECUTION_ERROR',
   ] as const)('retains %s at UI/store boundary', async (code) => {
     const error = new UniFetchError(code, 'Internal safe diagnostic');
     resolve.mockRejectedValueOnce(error);

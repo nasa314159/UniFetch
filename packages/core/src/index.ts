@@ -52,6 +52,7 @@ export const errorCodes = [
   'RATE_LIMITED',
   'PARSER_OUTDATED',
   'NETWORK_ERROR',
+  'GRAPHQL_EXECUTION_ERROR',
   'UNKNOWN',
 ] as const;
 export type ErrorCode = (typeof errorCodes)[number];

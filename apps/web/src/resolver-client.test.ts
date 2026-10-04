@@ -5,6 +5,8 @@ import {
   parseInstagramMediaResponse,
 } from '@unifetch/meta-resolver/instagram';
 import { parseSharedPayload } from '@unifetch/share-target';
+import { resolutionErrorMessage, resolutionErrorTitle } from './error-messages';
+import { UniFetchError } from '@unifetch/core';
 import raw from '../../../packages/meta-resolver/src/instagram/__fixtures__/single-image-response.json';
 const input = 'https://www.instagram.com/p/synthetic-client/';
 function body() {
@@ -104,6 +106,7 @@ describe('Web metadata Resolver client', () => {
     'CONTENT_UNAVAILABLE',
     'PARSER_OUTDATED',
     'NETWORK_ERROR',
+    'GRAPHQL_EXECUTION_ERROR',
   ])('preserves safe API error %s', async (code) => {
     const fetcher = vi.fn<typeof fetch>(
       async () =>
@@ -118,6 +121,35 @@ describe('Web metadata Resolver client', () => {
     await expect(
       createWebResolver('https://resolver.invalid', fetcher).resolve(input),
     ).rejects.toMatchObject({ code });
+  });
+  it('presents a Worker GraphQL failure without substituting parser drift or exposing upstream text', async () => {
+    const fetcher = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            ok: false,
+            error: {
+              code: 'GRAPHQL_EXECUTION_ERROR',
+              message:
+                'Instagram returned an application-level error for this request.',
+            },
+          }),
+          { status: 502 },
+        ),
+    );
+    const failure = await createWebResolver('https://resolver.invalid', fetcher)
+      .resolve(input)
+      .catch((error: unknown) => error);
+    expect(failure).toBeInstanceOf(UniFetchError);
+    const error = failure as UniFetchError;
+    expect(error.code).toBe('GRAPHQL_EXECUTION_ERROR');
+    expect(resolutionErrorTitle(error)).toBe(
+      "Instagram couldn't return this post",
+    );
+    expect(resolutionErrorMessage(error)).toBe(
+      'Instagram returned an application-level error for this request.',
+    );
+    expect(fetcher).toHaveBeenCalledOnce();
   });
   it('rejects raw or unknown API responses', async () => {
     const fetcher = vi.fn(async () => new Response(JSON.stringify(raw)));

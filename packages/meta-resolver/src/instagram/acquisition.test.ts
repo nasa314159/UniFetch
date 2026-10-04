@@ -197,14 +197,13 @@ describe('Offline mocked acquisition', () => {
     expect(Object.keys(result)).toEqual(['raw', 'network']);
     expect(JSON.stringify(result.network)).not.toContain(ref.shortcode);
   });
-  it('returns unknown structured data unchanged, without interpreting schema', async () => {
-    const raw = { data: { changed_schema: { value: 12 } } };
-    const { runtime } = mockedRuntime(reply(raw));
-    const result = await adapter.acquirePublicMedia(ref, { runtime });
-    expect(result.raw).toEqual(raw);
-    expect(() =>
-      parseInstagramMediaResponse(result.raw, ref.shortcode),
-    ).toThrow(expect.objectContaining({ code: 'PARSER_OUTDATED' }));
+  it('keeps absent media semantics distinct from parser drift', async () => {
+    const { runtime } = mockedRuntime(
+      reply({ data: { changed_schema: { value: 12 } } }),
+    );
+    await expect(
+      adapter.acquirePublicMedia(ref, { runtime }),
+    ).rejects.toMatchObject({ code: 'UNKNOWN' });
   });
   it('lets callers compose acquisition, parser and normalizer externally', async () => {
     const { runtime } = mockedRuntime();
@@ -313,17 +312,13 @@ describe('Offline mocked acquisition', () => {
       adapter.acquirePublicMedia(ref, { runtime }),
     ).rejects.toMatchObject({ code: 'LOGIN_REQUIRED' });
   });
-  it('returns generic execution errors unchanged for downstream parser handling', async () => {
-    const raw = {
-      data: null,
-      errors: [{ message: 'Execution error', unrelated: 42 }],
-    };
-    const { runtime } = mockedRuntime(reply(raw));
-    const result = await adapter.acquirePublicMedia(ref, { runtime });
-    expect(result.raw).toEqual(raw);
-    expect(() =>
-      parseInstagramMediaResponse(result.raw, ref.shortcode),
-    ).toThrow(expect.objectContaining({ code: 'PARSER_OUTDATED' }));
+  it('classifies generic execution errors before downstream media parsing', async () => {
+    const { runtime } = mockedRuntime(
+      reply({ data: null, errors: [{ message: 'Fictional execution error' }] }),
+    );
+    await expect(
+      adapter.acquirePublicMedia(ref, { runtime }),
+    ).rejects.toMatchObject({ code: 'GRAPHQL_EXECUTION_ERROR' });
   });
   it('data takes precedence over partial GraphQL errors', async () => {
     const raw = { ...image, errors: [{ message: 'Rate limit exceeded' }] };
@@ -333,14 +328,12 @@ describe('Offline mocked acquisition', () => {
     );
   });
   it('handles unrecognized malformed error entries without crashing', async () => {
-    const raw = {
-      data: null,
-      errors: [null, 42, {}, 'Unrecognized execution failure'],
-    };
-    const { runtime } = mockedRuntime(reply(raw));
-    expect((await adapter.acquirePublicMedia(ref, { runtime })).raw).toEqual(
-      raw,
+    const { runtime } = mockedRuntime(
+      reply({ data: null, errors: [null, 42, {}, 'Fictional failure'] }),
     );
+    await expect(
+      adapter.acquirePublicMedia(ref, { runtime }),
+    ).rejects.toMatchObject({ code: 'GRAPHQL_EXECUTION_ERROR' });
   });
   it('rejects non-JSON HTTP 200 without exposing payload', async () => {
     const { runtime } = mockedRuntime({
@@ -350,7 +343,7 @@ describe('Offline mocked acquisition', () => {
     await expect(
       adapter.acquirePublicMedia(ref, { runtime }),
     ).rejects.toMatchObject({
-      code: 'PARSER_OUTDATED',
+      code: 'GRAPHQL_EXECUTION_ERROR',
       message: expect.not.stringContaining('SENSITIVE'),
     });
   });

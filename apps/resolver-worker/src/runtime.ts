@@ -6,7 +6,10 @@ import {
   type RuntimeSession,
   type RuntimeSessionOptions,
 } from '@unifetch/core';
-import { POLARIS_POST_ROOT_PROFILE_V1 as profile } from '@unifetch/meta-resolver/instagram';
+import {
+  inspectInstagramGraphql,
+  POLARIS_POST_ROOT_PROFILE_V1 as profile,
+} from '@unifetch/meta-resolver/instagram';
 import { boundedBody } from './bounded-body';
 import {
   anonymousRequestHeaders,
@@ -105,6 +108,25 @@ export class CloudflareMetadataRuntime implements RuntimeAdapter {
         ...bodyDetails(body),
         elapsedMs: Date.now() - readStarted,
       });
+      if (this.observe) {
+        try {
+          this.observe({
+            stage: 'GRAPHQL_CLASSIFICATION',
+            status: response.status,
+            ...inspectInstagramGraphql(
+              JSON.parse(new TextDecoder().decode(body)),
+            ),
+            elapsedMs: 0,
+          });
+        } catch {
+          this.observe({
+            stage: 'GRAPHQL_CLASSIFICATION',
+            status: response.status,
+            category: 'GRAPHQL_EXECUTION_ERROR',
+            elapsedMs: 0,
+          });
+        }
+      }
       return {
         status: response.status,
         body,

@@ -1,0 +1,29 @@
+{
+  "generic": {
+    "data": null,
+    "errors": [{ "message": "Fictional execution failure" }]
+  },
+  "login": {
+    "data": {},
+    "login_required": true,
+    "errors": [{ "message": "Fictional access failure" }]
+  },
+  "rate": {
+    "data": null,
+    "errors": [
+      {
+        "extensions": { "code": "RATE_LIMITED" },
+        "message": "Fictional request limit"
+      }
+    ]
+  },
+  "unavailable": {
+    "data": null,
+    "errors": [
+      {
+        "extensions": { "code": "CONTENT_UNAVAILABLE" },
+        "message": "Fictional missing content"
+      }
+    ]
+  }
+}
