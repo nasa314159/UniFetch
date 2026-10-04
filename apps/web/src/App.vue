@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-const installEvent = ref<(Event & { prompt(): Promise<void> }) | null>(null);
-window.addEventListener('beforeinstallprompt', (event) => {
-  event.preventDefault();
-  installEvent.value = event as Event & { prompt(): Promise<void> };
-});
-async function install() {
-  await installEvent.value?.prompt();
-  installEvent.value = null;
-}
+import { usePwaInstall } from './composables/usePwaInstall';
+import InstallInstructions from './components/InstallInstructions.vue';
+const {
+  showInstallAction,
+  prompting,
+  showInstructions,
+  requiresIosInstructions,
+  install,
+  dismissInstructions,
+} = usePwaInstall();
 </script>
 <template>
   <div class="app-shell">
@@ -18,10 +18,20 @@ async function install() {
           class="beta"
           >PREVIEW</span
         ></RouterLink
-      ><button v-if="installEvent" class="install" @click="install">
-        Install app <span aria-hidden="true">↗</span></button
+      ><button
+        v-if="showInstallAction"
+        class="install"
+        :disabled="prompting"
+        @click="install"
+      >
+        Install <span aria-hidden="true">↗</span></button
       ><span v-else class="local-mark"><span></span> No media proxy</span>
     </header>
+    <InstallInstructions
+      :open="showInstructions"
+      :ios="requiresIosInstructions"
+      @dismiss="dismissInstructions"
+    />
     <main><RouterView /></main>
     <footer>
       <span>UniFetch · Built around your privacy.</span
