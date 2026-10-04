@@ -2,7 +2,11 @@
 import { computed, ref } from 'vue';
 import { asUniFetchError } from '@unifetch/core';
 import type { InstagramResolutionResult } from '@unifetch/meta-resolver';
-import { downloadSequential, originalMediaUrl } from '@unifetch/downloader';
+import {
+  downloadSequential,
+  originalMediaUrl,
+  createDownloadFilename,
+} from '@unifetch/downloader';
 import { WebRuntime } from '@unifetch/runtime-web';
 const props = defineProps<{ result: InstagramResolutionResult }>();
 const selected = ref(props.result.post.assets.map((asset) => asset.id));
@@ -26,13 +30,32 @@ const contentType = computed(() =>
 async function download(ids: string[]) {
   downloading.value = true;
   notice.value = '';
+  let formatFallback = false;
   try {
     await downloadSequential(
-      props.result.post.assets.filter((asset) => ids.includes(asset.id)),
-      new WebRuntime(),
+      props.result.post.assets
+        .map((asset, index) => ({
+          ...asset,
+          suggestedFilename: createDownloadFilename({
+            platform: props.result.post.platform,
+            username: props.result.post.author?.username,
+            caption: props.result.post.caption,
+            assetIndex: index,
+            assetCount: props.result.post.assets.length,
+            mediaType: asset.type,
+            mimeType: asset.mimeType,
+            contentKind: contentType.value === 'Reel' ? 'reel' : 'post',
+          }),
+        }))
+        .filter((asset) => ids.includes(asset.id)),
+      new WebRuntime((result) => {
+        if (result.status === 'requested' && result.formatFallback)
+          formatFallback = true;
+      }),
     );
-    notice.value =
-      'Download requested. Check your browser for the saved file. Multiple files may require permission.';
+    notice.value = formatFallback
+      ? 'Download requested. An image was kept in its original format.'
+      : 'Download requested.';
   } catch (cause) {
     const error = asUniFetchError(cause);
     notice.value = `${error.message} (${error.code})`;

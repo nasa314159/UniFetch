@@ -7,7 +7,10 @@ import {
   type RuntimeSessionOptions,
   type MediaAsset,
 } from '@unifetch/core';
-import { downloadLocalAsset } from '@unifetch/downloader';
+import {
+  downloadLocalAsset,
+  type DownloadAttemptResult,
+} from '@unifetch/downloader';
 
 function restriction(message: string): never {
   throw new UniFetchError('BROWSER_RESTRICTION', message);
@@ -36,6 +39,9 @@ function checkedHeaders(input?: Record<string, string>): Headers {
   return headers;
 }
 export class WebRuntime implements RuntimeAdapter {
+  constructor(
+    private readonly onDownload?: (result: DownloadAttemptResult) => void,
+  ) {}
   capabilities() {
     return { downloads: true, crossOriginRequests: false };
   }
@@ -178,6 +184,6 @@ export class WebRuntime implements RuntimeAdapter {
     };
   }
   download(asset: MediaAsset): Promise<void> {
-    return downloadLocalAsset(asset);
+    return downloadLocalAsset(asset, this.onDownload);
   }
 }

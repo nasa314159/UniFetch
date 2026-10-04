@@ -36,10 +36,81 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 describe('Direct browser downloads', () => {
-  it('retains local fixture anchor download and filename without fetch', async () => {
+  it('downloads local still-image fixtures through normalization', async () => {
+    fetcher.mockResolvedValue(
+      new Response(new Blob(['fictional jpeg'], { type: 'image/jpeg' })),
+    );
     await downloadLocalAsset({ ...asset, url: '/demo/image.svg' });
+    expect(fetcher).toHaveBeenCalledOnce();
     expect(anchor).toMatchObject({
-      href: 'https://unifetch.invalid/demo/image.svg',
+      href: 'blob:fictional',
+      download: 'fictional.jpg',
+    });
+  });
+  it('normalizes WebP to JPEG and replaces the source extension', async () => {
+    fetcher.mockResolvedValue(
+      new Response(new Blob(['fictional webp'], { type: 'image/webp' })),
+    );
+    vi.stubGlobal(
+      'createImageBitmap',
+      vi.fn().mockResolvedValue({ width: 32, height: 24, close: vi.fn() }),
+    );
+    const output = new Blob(['fictional jpeg'], { type: 'image/jpeg' });
+    const create = document.createElement as ReturnType<typeof vi.fn>;
+    create.mockImplementation((tag: string) =>
+      tag === 'canvas'
+        ? {
+            getContext: () => ({ fillRect: vi.fn(), drawImage: vi.fn() }),
+            toBlob: (callback: (blob: Blob) => void) => callback(output),
+          }
+        : anchor,
+    );
+    expect(
+      await attemptBlobDownload({
+        ...asset,
+        suggestedFilename: 'studio_post_01.jpg.webp',
+      }),
+    ).toEqual({ status: 'requested' });
+    expect(URL.createObjectURL).toHaveBeenCalledWith(output);
+    expect(anchor.download).toBe('studio_post_01.jpg');
+  });
+  it('saves conversion fallback in its real format with an accurate result', async () => {
+    const source = new Blob(['fictional webp'], { type: 'image/webp' });
+    fetcher.mockResolvedValue(new Response(source));
+    expect(
+      await attemptBlobDownload({
+        ...asset,
+        suggestedFilename: 'studio_post_01.jpg',
+      }),
+    ).toEqual({ status: 'requested', formatFallback: true });
+    expect(anchor.download).toBe('studio_post_01.webp');
+    expect(
+      (URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0][0].type,
+    ).toBe('image/webp');
+  });
+  it('never decodes video and preserves MP4 bytes and extension', async () => {
+    fetcher.mockResolvedValue(
+      new Response(new Blob(['fictional mp4'], { type: 'video/mp4' })),
+    );
+    const decode = vi.fn();
+    vi.stubGlobal('createImageBitmap', decode);
+    await attemptBlobDownload({
+      ...asset,
+      type: 'video',
+      suggestedFilename: 'studio_caption_03.jpg',
+    });
+    expect(decode).not.toHaveBeenCalled();
+    expect(anchor.download).toBe('studio_caption_03.mp4');
+  });
+
+  it('retains local video fixture anchor download and filename without fetch', async () => {
+    await downloadLocalAsset({
+      ...asset,
+      type: 'video',
+      url: '/demo/video.mp4',
+    });
+    expect(anchor).toMatchObject({
+      href: 'https://unifetch.invalid/demo/video.mp4',
       download: 'fictional.jpg',
     });
     expect(anchor.click).toHaveBeenCalledOnce();
@@ -56,8 +127,10 @@ describe('Direct browser downloads', () => {
       rel: 'noopener noreferrer',
     });
   });
-  it('readable Blob response requests download with original filename, then revokes', async () => {
-    fetcher.mockResolvedValue(new Response('fictional media'));
+  it('readable JPEG Blob requests a jpg filename, then revokes', async () => {
+    fetcher.mockResolvedValue(
+      new Response(new Blob(['fictional media'], { type: 'image/jpeg' })),
+    );
     expect(await attemptBlobDownload(asset)).toEqual({ status: 'requested' });
     expect(anchor).toMatchObject({
       href: 'blob:fictional',
@@ -68,7 +141,9 @@ describe('Direct browser downloads', () => {
     expect(revoke).toHaveBeenCalledExactlyOnceWith('blob:fictional');
   });
   it('revokes the object URL even if clicking fails', async () => {
-    fetcher.mockResolvedValue(new Response('fictional media'));
+    fetcher.mockResolvedValue(
+      new Response(new Blob(['fictional media'], { type: 'image/jpeg' })),
+    );
     (anchor.click as ReturnType<typeof vi.fn>).mockImplementation(() => {
       throw new Error('click failed');
     });
@@ -95,7 +170,9 @@ describe('Direct browser downloads', () => {
     expect(fetcher).toHaveBeenCalledOnce();
   });
   it('never routes media fetch through the Resolver or uses cookies', async () => {
-    fetcher.mockResolvedValue(new Response('fictional media'));
+    fetcher.mockResolvedValue(
+      new Response(new Blob(['fictional media'], { type: 'image/jpeg' })),
+    );
     await downloadLocalAsset(asset);
     expect(fetcher).toHaveBeenCalledExactlyOnceWith(asset.url, {
       mode: 'cors',

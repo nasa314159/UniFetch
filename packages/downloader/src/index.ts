@@ -4,8 +4,18 @@ import {
   type RuntimeAdapter,
 } from '@unifetch/core';
 
+import { finalizeDownloadFilename } from './filename';
+import { normalizeStillImage } from './image-normalization';
+export {
+  createDownloadFilename,
+  finalizeDownloadFilename,
+  extensionForMime,
+} from './filename';
+export type { FilenameInput } from './filename';
+export { normalizeStillImage } from './image-normalization';
+
 export type DownloadAttemptResult =
-  | { status: 'requested' }
+  | { status: 'requested'; formatFallback?: boolean }
   | { status: 'navigation-requested' }
   | { status: 'browser-restricted'; reason: 'cors-or-network' | 'opaque' }
   | { status: 'failed' };
@@ -72,14 +82,28 @@ export async function attemptBlobDownload(
     return { status: 'browser-restricted', reason: 'opaque' };
   if (!response.ok) return { status: 'failed' };
   let objectUrl: string;
+  let filename: string;
+  let formatFallback = false;
   try {
-    objectUrl = URL.createObjectURL(await response.blob());
+    const source = await response.blob();
+    const normalized =
+      asset.type === 'image'
+        ? await normalizeStillImage(source)
+        : { blob: source, fallback: false };
+    formatFallback = normalized.fallback;
+    filename = finalizeDownloadFilename(
+      asset.suggestedFilename,
+      normalized.blob.type,
+    );
+    objectUrl = URL.createObjectURL(normalized.blob);
   } catch {
     return { status: 'failed' };
   }
   try {
-    clickAnchor(objectUrl, asset.suggestedFilename);
-    return { status: 'requested' };
+    clickAnchor(objectUrl, filename);
+    return formatFallback
+      ? { status: 'requested', formatFallback: true }
+      : { status: 'requested' };
   } catch {
     return { status: 'failed' };
   } finally {
@@ -87,11 +111,14 @@ export async function attemptBlobDownload(
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
   }
 }
-/** Compatibility entry point: local fixtures use anchors, remote assets use readable Blob fetch. */
-export async function downloadLocalAsset(asset: MediaAsset): Promise<void> {
+/** Still images use readable Blob fetch and client-side JPEG normalization, including fixtures. */
+export async function downloadLocalAsset(
+  asset: MediaAsset,
+  onResult?: (result: DownloadAttemptResult) => void,
+): Promise<void> {
   const url = originalMediaUrl(asset.url);
   const result =
-    new URL(url).origin === window.location.origin
+    asset.type !== 'image' && new URL(url).origin === window.location.origin
       ? attemptAnchorDownload(asset)
       : await attemptBlobDownload(asset);
   if (result.status === 'browser-restricted')
@@ -104,6 +131,7 @@ export async function downloadLocalAsset(asset: MediaAsset): Promise<void> {
       'NETWORK_ERROR',
       'The source file could not be downloaded. You can try Open original.',
     );
+  onResult?.(result);
 }
 export async function downloadSequential(
   assets: readonly MediaAsset[],
