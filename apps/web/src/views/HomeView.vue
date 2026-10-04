@@ -124,7 +124,7 @@ watch(
     aria-atomic="true"
   >
     <p v-if="store.state === 'RESOLVING'" class="loading" role="status">
-      Resolving your link locally…
+      Resolving your link…
     </p>
     <section v-if="store.state === 'ERROR'" class="error-card" role="alert">
       <strong>We couldn’t resolve this link</strong>
