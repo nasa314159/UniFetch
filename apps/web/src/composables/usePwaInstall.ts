@@ -22,15 +22,22 @@ export interface InstallEnvironment {
 }
 
 /** Local UI classification only: no platform/UA data is stored or transmitted. */
+export function isIosDevice(
+  navigator: Pick<Navigator, 'userAgent' | 'maxTouchPoints'>,
+): boolean {
+  return (
+    /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
+  );
+}
 export function isIosSafari(
   navigator: Pick<Navigator, 'userAgent' | 'maxTouchPoints'>,
 ): boolean {
   const ua = navigator.userAgent;
-  const ios =
-    /iPhone|iPad|iPod/.test(ua) ||
-    (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
   return (
-    ios && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo/.test(ua)
+    isIosDevice(navigator) &&
+    /Safari/.test(ua) &&
+    !/CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo/.test(ua)
   );
 }
 

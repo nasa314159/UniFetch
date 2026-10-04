@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { usePwaInstall } from './composables/usePwaInstall';
+import { usePwaInstall, isIosDevice } from './composables/usePwaInstall';
 import InstallInstructions from './components/InstallInstructions.vue';
+const showIosShortcutSetup =
+  typeof navigator !== 'undefined' && isIosDevice(navigator);
 const {
   showInstallAction,
   prompting,
@@ -33,6 +35,63 @@ const {
       @dismiss="dismissInstructions"
     />
     <main><RouterView /></main>
+    <section
+      v-if="showIosShortcutSetup"
+      class="ios-share-setup"
+      aria-label="Set up Instagram sharing"
+    >
+      <a
+        class="shortcut-action"
+        href="https://www.icloud.com/shortcuts/9ff25727f16a43cfa6eac1e3ccd49a82"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Add UniFetch Shortcut <span aria-hidden="true">↗</span></a
+      >
+      <p>
+        On iOS, the installed PWA does not appear directly in the Share Sheet.
+        Add the UniFetch Shortcut, then choose UniFetch in Instagram’s Share
+        Sheet.
+      </p>
+      <details>
+        <summary>Manual setup fallback</summary>
+        <ol>
+          <li>
+            In Shortcuts, create <strong>UniFetch</strong>. Enable
+            <strong>Show in Share Sheet</strong>; accept URLs, Safari web pages,
+            and Text.
+          </li>
+          <li>
+            Add <strong>Get URLs from Input</strong> using Shortcut Input. If
+            URLs is empty, show an alert and stop. Otherwise, add
+            <strong>Get Item from List</strong> → First Item.
+          </li>
+          <li>
+            Use <strong>Match Text</strong> on First Item with the pattern
+            below.
+          </li>
+          <li>
+            If Matches has any value, add <strong>URL Encode</strong> → Encode.
+            In <strong>Text</strong>, append its output variable to
+            <code>https://unifetch.pages.dev/share?url=</code>, then use
+            <strong>Open URLs</strong> on Text. Otherwise, show “UniFetch
+            couldn’t find a supported Instagram link in the shared item.”
+          </li>
+        </ol>
+        <p>Match Text pattern (copy exactly):</p>
+        <code
+          >(?i)^https://(?:www\.)?instagram\.com/(?:p|reel|reels)/[A-Za-z0-9_-]+/?(?:\?[^\s#]*)?(?:#[^\s]*)?$</code
+        >
+        <p>
+          Set “If there’s no input” to Continue. For an empty URLs list, use
+          Show Alert followed by Stop and Output with no output (Do Nothing).
+        </p>
+        <p>
+          The Shortcut only forwards the shared URL. It may open Safari instead
+          of the Home Screen app. UniFetch resolves automatically; no copy/paste
+          is needed.
+        </p>
+      </details>
+    </section>
     <footer>
       <span>UniFetch · Built around your privacy.</span
       ><span>No accounts. No tracking. Open source.</span>
@@ -40,6 +99,32 @@ const {
   </div>
 </template>
 <style scoped>
+.ios-share-setup {
+  max-width: 710px;
+  margin: 25px auto 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.8;
+}
+.shortcut-action {
+  display: inline-block;
+  padding: 9px 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--green);
+  text-decoration: none;
+  font-weight: 600;
+}
+.ios-share-setup summary {
+  cursor: pointer;
+  color: var(--green);
+}
+.ios-share-setup li {
+  margin-bottom: 8px;
+}
+.ios-share-setup code {
+  overflow-wrap: anywhere;
+}
 .topbar {
   display: flex;
   align-items: center;
