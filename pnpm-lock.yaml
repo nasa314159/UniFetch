@@ -32,6 +32,19 @@ importers:
         specifier: ^3.1.1
         version: 3.3.12(typescript@5.9.3)
 
+  apps/extension:
+    dependencies:
+      '@unifetch/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@unifetch/meta-resolver':
+        specifier: workspace:*
+        version: link:../../packages/meta-resolver
+    devDependencies:
+      esbuild:
+        specifier: ^0.25.12
+        version: 0.25.12
+
   apps/resolver-worker:
     dependencies:
       '@unifetch/core':

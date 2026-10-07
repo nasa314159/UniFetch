@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "UniFetch M8A Authenticated PoC",
+  "version": "0.1.0",
+  "description": "Local-only proof of concept that measures which authenticated Instagram execution context can resolve one explicit content-gated post. No credentials or session data are read or exported.",
+  "minimum_chrome_version": "118",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["https://www.instagram.com/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "UniFetch M8A PoC",
+    "default_popup": "popup.html"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "@unifetch/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node build.mjs",
+    "build": "tsc --noEmit -p tsconfig.json && node build.mjs"
+  },
+  "dependencies": {
+    "@unifetch/core": "workspace:*",
+    "@unifetch/meta-resolver": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
+  }
+}
