@@ -8,6 +8,7 @@ export default defineConfig({
       'src/**/*.test.ts',
       '../../packages/*/src/**/*.test.ts',
       '../resolver-worker/src/**/*.test.ts',
+      '../extension/src/**/*.test.ts',
     ],
   },
 });
