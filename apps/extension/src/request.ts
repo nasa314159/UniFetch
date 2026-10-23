@@ -5,10 +5,10 @@ import {
 
 export interface StrategyRequest {
   endpoint: string;
-  method: 'POST';
+  method: 'GET' | 'POST';
   headers: Record<string, string>;
-  body: string;
-  csrfHeader: string;
+  body?: string;
+  csrfHeader?: string;
 }
 
 /**

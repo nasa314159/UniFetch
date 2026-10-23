@@ -37,6 +37,9 @@ importers:
       '@unifetch/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@unifetch/downloader':
+        specifier: workspace:*
+        version: link:../../packages/downloader
       '@unifetch/meta-resolver':
         specifier: workspace:*
         version: link:../../packages/meta-resolver

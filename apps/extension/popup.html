@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>UniFetch M8A PoC</title>
+    <title>UniFetch Instagram</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -30,6 +30,24 @@
         font: inherit;
         padding: 0.4rem 0.8rem;
       }
+      input {
+        font: inherit;
+        padding: 0.35rem 0.5rem;
+      }
+      .url-row {
+        display: flex;
+        gap: 0.5rem;
+        margin: 0 0 0.75rem;
+      }
+      .url-row input {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
       ul {
         list-style: none;
         margin: 0.75rem 0 0;
@@ -44,12 +62,34 @@
   </head>
   <body>
     <main>
-      <h1>UniFetch M8A authenticated PoC</h1>
+      <h1>UniFetch Instagram</h1>
+      <p id="build" role="status">Checking build…</p>
       <p>
-        Open a logged-in Instagram post or Reel tab, then run the matrix.
-        Results are sanitized: no URLs, usernames, captions or session data.
+        Open a logged-in Instagram post, Carousel, Reel or Story tab, then
+        resolve or download. You may also paste one Instagram URL. Results stay
+        in this popup and are never displayed as URLs, usernames, Story ids or
+        captions.
       </p>
-      <button id="run" type="button">Run authenticated matrix</button>
+      <p>
+        Stories require an explicit media id in the URL
+        (<code>/stories/&lt;username&gt;/&lt;id&gt;/</code>). Username-only
+        Stories and unsupported video/composite Stories fail closed.
+      </p>
+      <div class="url-row">
+        <input
+          id="url-input"
+          type="url"
+          placeholder="Instagram URL"
+          aria-label="Instagram URL"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button id="paste" type="button">Paste</button>
+      </div>
+      <div class="actions">
+        <button id="resolve" type="button">Resolve</button>
+        <button id="download" type="button">Download all</button>
+      </div>
       <p id="status" role="status">Idle.</p>
       <ul id="results"></ul>
     </main>

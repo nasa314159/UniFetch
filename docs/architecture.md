@@ -8,7 +8,7 @@ The pnpm workspace contains a static Vue PWA and a separate metadata-only Cloudf
 
 `meta-resolver` owns deterministic fixtures, InstagramContentRef parsing, `POLARIS_POST_ROOT_PROFILE_V1`, request construction, acquisition contract, defensive structured-response parser and normalizer. The runtime owns network I/O; parsers and resolvers do not use global fetch. `/reels/` normalizes to `/reel/`. Media kind comes from the response. Sanitized raw fixtures use only synthetic URLs, independently of UI demo fixtures.
 
-`runtime-web` owns browser requests and downloads. Its M4C origin-session implementation remains available through existing contracts/tests, but the production web client does not attempt direct cross-origin Instagram acquisition. ExtensionRuntime and NativeRuntime remain future options for fuller local execution through the same contracts; neither is implemented.
+`runtime-web` owns browser requests and downloads. Its M4C origin-session implementation remains available through existing contracts/tests, but the production web client does not attempt direct cross-origin Instagram acquisition. The separate `apps/extension` MV3 build provides authenticated local execution; `ExtensionRuntime`/`NativeRuntime` package slots remain future options. The Web/PWA never imports the extension and does not receive its session context.
 
 `downloader` handles explicit browser-native downloads, sequential for multiple selections. Media bytes never go through the metadata API. Source/browser restrictions may prevent a save; no ZIP or transcoding exists.
 
@@ -33,6 +33,27 @@ The Worker accepts POST/OPTIONS at `/api/resolve` only. It limits the JSON body 
 The existing M4A parser/normalizer selects direct media candidates and preserves carousel order. Malformed children fail rather than silently reorder. Missing structure means PARSER_OUTDATED; unavailable/auth/rate/network errors retain typed categories. The Worker validates a narrow success response (at most 100 assets) before sending it, without raw JSON, headers, cookies or stacks. Only normalized post, trace, response-derived kind and transport identity are returned.
 
 API output includes Cache-Control: no-store, Pragma: no-cache and explicit configurable CORS without Access-Control-Allow-Credentials. There are no media routes, caches, bindings, persistence or background processing. Wrangler builds locally with a dry run; deployment is separate.
+
+## Extension (authenticated, local)
+
+`apps/extension` is a Chromium MV3 extension that is built separately and loaded unpacked. It is not part of the Pages deployment. Its service worker and popup are bundled with esbuild; no server component is added.
+
+Flow:
+
+```text
+popup → one manual URL or active tab → background service worker
+      → Instagram (credentials: include, no Cookie header constructed)
+      → existing parser/normalizer → in-memory MediaAsset list
+      → browser-native download (media bytes source CDN → device)
+```
+
+- **Post/Carousel/Reel:** attempts background fetch, isolated content script and MAIN world in order. The first successful parse wins. `resolveStrategyOutcome` returns sanitized diagnostics plus in-memory assets.
+- **Story:** `story/ref.ts` accepts only an explicit media id; `story/route.ts` also recognizes a username-only URL solely to reject it with `UNSUPPORTED_CONTENT`. No page-state, DOM, fiber, history or visible-media inspection exists in the stable release.
+- **Identity invariant:** `matchOwner(routeUsername, responseOwner)` must not be `false`. A `false` result is `mismatch` and returns no asset. An absent response owner is `unknown` and does not itself reject an explicit-id URL; the explicit id remains authoritative.
+- **Download UX:** `download-flow.ts` reuses matching in-memory results for one target fingerprint or resolves then downloads. `createSingleFlight` blocks duplicate concurrent downloads. Nothing is persisted.
+- **Protocol handshake:** popup and background share `EXTENSION_PROTOCOL_VERSION`; controls stay disabled on mismatch so a stale service worker cannot receive new requests.
+
+The research-only modules (`story/current-id.ts`, `story/visible-media.ts`, `story/identity-sources.ts`, `story/diagnostic.ts` and their tests) remain on `research/m8b-m8d-instagram-story` and are intentionally absent from the stable branch.
 
 ## Trace and UI
 

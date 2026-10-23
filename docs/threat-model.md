@@ -2,7 +2,7 @@
 
 ## Trust boundary
 
-UniFetch acts on one explicit URL after a Resolve click or OS share. Media saves require a download click. It does not crawl, enumerate, brute-force IDs, bypass access controls/private restrictions, discover unavailable content, request Instagram credentials, export user cookies or serialize browser sessions.
+UniFetch acts on one explicit URL after a Resolve click or OS share. Media saves require a download click. It does not crawl, enumerate, brute-force IDs, bypass access controls/private restrictions, discover unavailable content, request Instagram credentials, export user cookies or serialize browser sessions. The extension's Story support is limited to an explicit media id already present in the URL.
 
 M5 introduces a remote metadata trust boundary: the configured Resolver sees the submitted public URL and upstream metadata transiently. It cannot be described as fully local. Media bytes remain between the client and source/CDN. The public implementation is auditable; an operator could deploy modified code, so users must trust the actual deployment as well as review source.
 
@@ -24,4 +24,4 @@ M5 introduces a remote metadata trust boundary: the configured Resolver sees the
 
 The supplied Instagram web profile is unstable and may require authentication, be rate-limited or fail schema parsing. Failures stay typed; no alternate endpoint, login or proxy workaround is used. Direct media can be blocked by source/browser policy. A compromised dependency/host can change executable behavior. Provider logs, browser cache/history and download behavior are beyond application guarantees. No account-based access or persistent abuse-control database is introduced; operators should assess exposure before deployment.
 
-M4C public Image/Carousel/Reel direct probes each returned BROWSER_RESTRICTION; M4D was intentionally skipped. Neither extensions nor native runtimes are implemented.
+M4C public Image/Carousel/Reel direct probes each returned BROWSER_RESTRICTION; M4D was intentionally skipped. The Web/PWA therefore keeps using the metadata Resolver. The separate unpacked extension performs authenticated requests inside the user's own browser; it does not change the Web/PWA trust boundary, does not relay media and does not read cookies. See [supported content](supported-content.md) for the capability split.

@@ -11,10 +11,11 @@ const manifest = JSON.parse(
   readFileSync(new URL('../manifest.json', import.meta.url), 'utf8'),
 ) as Manifest;
 
-describe('M8A extension manifest', () => {
+describe('Instagram extension manifest', () => {
   it('requests only the intended permissions', () => {
     expect([...(manifest.permissions ?? [])].sort()).toEqual([
       'activeTab',
+      'clipboardRead',
       'scripting',
     ]);
   });
@@ -31,6 +32,11 @@ describe('M8A extension manifest', () => {
     for (const name of ['history', 'tabs', 'webRequest', 'storage']) {
       expect(permissions).not.toContain(name);
     }
+  });
+  it('requests only the minimal clipboard capability for explicit paste', () => {
+    const permissions = manifest.permissions ?? [];
+    expect(permissions).toContain('clipboardRead');
+    expect(permissions).not.toContain('clipboardWrite');
   });
   it('uses a module service worker built from background.js', () => {
     expect(manifest.background).toEqual({

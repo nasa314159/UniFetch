@@ -2,6 +2,15 @@
 
 Deploy the static Web/PWA on Cloudflare Pages and the metadata Resolver as a separate Cloudflare Worker. Temporary `pages.dev` and `workers.dev` HTTPS domains are sufficient. Custom domains are optional future work; no DNS changes are required.
 
+## Verified production target
+
+| Component | Target                                          | Type                |
+| --------- | ----------------------------------------------- | ------------------- |
+| Web/PWA   | Pages project `unifetch` → `unifetch.pages.dev` | Direct Upload       |
+| Resolver  | Worker `unifetch-resolver`                      | Wrangler deployment |
+
+The Pages project is not connected to a Git provider; production is published from a locally built `apps/web/dist`. Do not touch other Pages projects (`linktree`, `114-514-org`), custom domains, DNS or billing. The extension is not deployed to Cloudflare.
+
 ## Resolver
 
 Use the existing authenticated Wrangler installation. From the repository root:
@@ -38,8 +47,11 @@ For Pages Git builds, set this public variable in Cloudflare deployment settings
 For Pages Direct Upload, build locally with the public deployment value:
 
 ```sh
-VITE_UNIFETCH_RESOLVER_URL=https://YOUR-RESOLVER.workers.dev pnpm --filter @unifetch/web build
+VITE_UNIFETCH_RESOLVER_URL=https://unifetch-resolver.cernmeow.workers.dev pnpm --filter @unifetch/web build
+WRANGLER_SEND_METRICS=false npx wrangler@4 pages deploy apps/web/dist --project-name unifetch
 ```
+
+The checked-in Resolver origin is the existing production Worker. Always pass `--project-name unifetch`; never omit it when multiple Pages projects exist in the account.
 
 In the authenticated Cloudflare dashboard choose Pages, Direct Upload, and upload the **contents** of `apps/web/dist` as a folder or ZIP. The archive root must contain `index.html`, not an enclosing `dist` directory. Direct Upload serves prebuilt files, so dashboard runtime variables cannot change an already-built Vite bundle; rebuild before uploading whenever the Resolver origin changes. No repository integration or new API token is required for dashboard upload.
 
@@ -54,3 +66,14 @@ In a production browser check all three fixtures, explicitly supplied public Ins
 Use live content only transiently; never record its page URL, media URL, payload, author or caption in project files or diagnostic logs. Application storage and service-worker caches must not retain resolved content. Browser history, source HTTP caches and provider infrastructure logs remain outside app control.
 
 Metadata goes through the Resolver Worker. Media previews/downloads go directly from the user's browser/device to the source/CDN. The Worker never relays media to work around CORS. Public access and download success depend on the source and browser; tested samples do not establish universal support.
+
+## Extension
+
+The Chromium extension is a local build, not a Cloudflare artifact.
+
+```sh
+pnpm --filter @unifetch/extension build
+# chrome://extensions → Developer mode → Load unpacked → apps/extension/dist
+```
+
+Reload the extension after every rebuild. The popup checks the background protocol marker and disables actions until both halves report the same build. The extension never contacts the Resolver origin and never needs a Worker variable.

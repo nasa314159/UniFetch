@@ -10,6 +10,14 @@ No Instagram credentials or UniFetch account are required. User cookies, passwor
 
 All upstream requests and API responses use no-store. There is no Worker Cache API, media buffering, persistent cache, KV, R2, D1, database or other storage binding. There are no analytics or telemetry. Supplied Wrangler metrics/Worker observability are disabled. Hosting providers may still observe requests through infrastructure logs; the application cannot certify a deployed provider's behavior. Operators must review provider logging policies. Open-source code allows auditing, not automatic verification of a particular hosted build.
 
+## Extension trust boundary
+
+The Chromium extension runs entirely on the user's device and uses the existing Instagram browser session via normal credentialed requests. It does not read `document.cookie`, does not request the `cookies` permission, does not use `chrome.storage`, `localStorage` or `indexedDB`, and does not contact the UniFetch Resolver. No session value is included in a request header by application code and no session value is returned to the popup.
+
+Resolved assets and target fingerprints live only in popup/service-worker memory. Explicit downloads write files to the user's device. The extension has `activeTab`, `scripting` and `clipboardRead` only; clipboard text is read only after an explicit Paste click and is never persisted.
+
+Story identity is validated before exposure: a response publisher that differs from the route username is rejected. Username-only Story URLs are refused before any request, so the extension does not perform Story discovery or enumeration.
+
 ## Trace semantics
 
 Fixtures resolve locally without upstream requests. Worker metadata uses processedLocally=false, metadataResolverUsed=true, mediaProxyUsed=false and credentialsExported=false. Compatibility field remoteProxyUsed=true means a remote metadata intermediary was used. It never means media bytes were relayed. The UI distinguishes these stages and records origins only; direct preview/download requests happen afterward.

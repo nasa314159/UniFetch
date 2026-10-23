@@ -4,12 +4,26 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 const srcDir = path.dirname(fileURLToPath(import.meta.url));
-const sources = readdirSync(srcDir).filter(
-  (name) =>
-    name.endsWith('.ts') &&
-    !name.endsWith('.test.ts') &&
-    !name.endsWith('.d.ts'),
-);
+
+function walk(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === '__fixtures__' || entry.name === 'node_modules')
+        return [];
+      return walk(full);
+    }
+    if (
+      entry.name.endsWith('.ts') &&
+      !entry.name.endsWith('.test.ts') &&
+      !entry.name.endsWith('.d.ts')
+    )
+      return [full];
+    return [];
+  });
+}
+
+const sources = walk(srcDir);
 
 // These tokens must never appear in shipped extension source. Test files are
 // excluded because they intentionally use them as fixtures.
@@ -26,11 +40,9 @@ const forbidden = [
   '/api/resolve',
 ];
 
-const joined = sources
-  .map((name) => readFileSync(path.join(srcDir, name), 'utf8'))
-  .join('\n');
+const joined = sources.map((file) => readFileSync(file, 'utf8')).join('\n');
 
-describe('M8A privacy and boundary scan', () => {
+describe('M8A/M8B privacy and boundary scan', () => {
   it('scans the shipped source modules', () => {
     expect(sources.length).toBeGreaterThanOrEqual(8);
   });

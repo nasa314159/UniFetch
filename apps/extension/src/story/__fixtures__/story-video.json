@@ -1,0 +1,30 @@
+{
+  "status": "ok",
+  "num_results": 1,
+  "items": [
+    {
+      "media_type": 2,
+      "image_versions2": {
+        "candidates": [
+          {
+            "url": "https://media.invalid/unifetch/story-video-thumb.jpg",
+            "width": 1080,
+            "height": 1920
+          }
+        ]
+      },
+      "video_versions": [
+        {
+          "url": "https://media.invalid/unifetch/story-video-high.mp4",
+          "width": 1080,
+          "height": 1920
+        },
+        {
+          "url": "https://media.invalid/unifetch/story-video-low.mp4",
+          "width": 480,
+          "height": 854
+        }
+      ]
+    }
+  ]
+}

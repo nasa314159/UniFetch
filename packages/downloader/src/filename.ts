@@ -12,7 +12,7 @@ export interface FilenameInput {
   contentKind?: 'post' | 'reel';
 }
 
-function component(value: string, maxLength: number): string {
+export function component(value: string, maxLength: number): string {
   const clean = value
     .replace(/[\r\n\t]+/g, ' ')
     .replace(/[\p{Cc}\u202a-\u202e\u2066-\u2069/\\:*?"<>|]/gu, '')
