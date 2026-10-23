@@ -314,6 +314,7 @@ WRANGLER_SEND_METRICS=false npx wrangler@4 pages deploy apps/web/dist \
 - Pages 專案：`unifetch`
 - 正式網域：`https://unifetch.pages.dev`
 - 型態：Direct Upload（未接 Git provider）
+- 2026-10-23 已以此流程部署，Production alias 已更新；`/` 與 `/share` 均回 `200`。
 - **不要**省略 `--project-name`；同帳號還有 `linktree`、`114-514-org` 等其他專案。
 - 不要改 DNS、custom domain、billing。
 
@@ -348,16 +349,19 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 
 ## 11. Git 分支與 release 狀態
 
-| 分支                               | 用途                   | 狀態                                     |
-| ---------------------------------- | ---------------------- | ---------------------------------------- |
-| `main`                             | 正式基線               | 本輪 release 合併後更新（見最終 commit） |
-| `release/instagram-stable`         | 穩定 Instagram release | 由此分支驗證與部署                       |
-| `research/m8b-m8d-instagram-story` | M8B–M8D 實驗完整保存   | 已推送 origin，**不併入 main**           |
-| `m8a-auth-extension-poc`           | M8A PoC 歷史           | 已推送 origin                            |
-| `m8b-story-feasibility`            | M8B 歷史指標           | 無額外 commit，保留供對照                |
-| `m8c-extension-story-download`     | 舊工作分支             | 內容已由 research snapshot 保存          |
+| 分支                               | 用途                   | 狀態                                       |
+| ---------------------------------- | ---------------------- | ------------------------------------------ |
+| `main`                             | 正式基線               | release commit `cd73025`，已推送 origin    |
+| `release/instagram-stable`         | 穩定 Instagram release | 與 `main` 同 commit，已推送 origin         |
+| `research/m8b-m8d-instagram-story` | M8B–M8D 實驗完整保存   | snapshot `72c590e`，已推送，不併入 main    |
+| `m8a-auth-extension-poc`           | M8A PoC 歷史           | `62edb18`，已推送 origin                   |
+| `m8b-story-feasibility`            | M8B 歷史指標           | `62edb18`，保留供對照                      |
+| `m8c-extension-story-download`     | 舊工作分支             | `62edb18`；內容已由 research snapshot 保存 |
 
-> 精確 commit hash、push 結果與部署結果以本次 session 最終報告與 `git log --oneline --decorate` 為準。此文件不重複貼上會過期的長 hash 清單。
+- 穩定版 release commit：`cd73025`（`feat(extension): ship stable Instagram baseline`）
+- 其父 commit：`c02c1ea`（M8A，cherry-pick 自 `62edb18`）
+- `main` 舊基線：`b2a10e6`（`docs: add developer handoff`）
+- 本文件可能另有一個 `docs:` commit；release 內容仍以 `cd73025` 為準。
 
 禁止：force push、`git reset --hard`、`git clean -fd`、未確認就刪除未提交工作。
 
