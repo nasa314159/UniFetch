@@ -406,9 +406,10 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
   | ZIP              | `unifetch-chromium-extension-v0.2.0.zip`（252,431 bytes）                             |
   | SHA-256          | `6dcfd8fda34e80c3030762cf2ae576f2f0b29f8d3ee2da9af05351031f2463f3`                    |
   | 安裝頁           | https://unifetch.pages.dev/extension                                                  |
-  | Pages Production | deployment `5dbdc2b0-8706-42ad-8f17-034eaa2a46dc`，source `bfb9c0e`；三條路由皆 `200` |
+  | Pages Production | deployment `efbf4799-5b8d-4090-8d54-19f6454769ac`，source `7f27c62`；三條路由皆 `200` |
 
 - 已從 GitHub 重新下載 release asset，SHA-256 與上表一致；ZIP 只有 4 個 runtime 檔，根目錄直接含 `manifest.json`。
+- 生產環境 `/extension` 已用瀏覽器檢查下載連結、checksum、`chrome://extensions` 複製按鈕與 desktop/mobile 顯示切換；Lighthouse accessibility `0.96`、best-practices `1.00`，剩餘 contrast／accessible-name 問題來自全站既有 header/footer。
 - 尚未在真實 Chrome 中重新執行「Load unpacked → 登入 Instagram → 下載」的實機流程；自動測試與 ZIP 驗證不等於瀏覽器安裝成功。
 
 禁止：force push、`git reset --hard`、`git clean -fd`、未確認就刪除未提交工作。
