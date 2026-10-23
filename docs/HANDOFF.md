@@ -57,6 +57,14 @@ UniFetch 是開源、隱私導向、由使用者主動觸發的社群媒體下�
 - **延後**：刻意先不做。
 - **不支援**：設計上直接拒絕。
 
+### 2.1 行動裝置入口（既有驗證，本輪未重驗）
+
+- **Android：** Instagram → 分享 → UniFetch PWA Share Target → 自動解析。
+- **iOS / iPadOS：** Instagram → 分享 → UniFetch Apple Shortcut → `/share` → 自動解析。
+- 已驗證 Shortcut 連結：`https://www.icloud.com/shortcuts/9ff25727f16a43cfa6eac1e3ccd49a82`
+- 多媒體下載：Android 直接多下載可用；iOS 需要時使用 Save queue。歷史驗證曾成功保存 4/4，並保留 `_01`…`_04` 原始順序。
+- PWA 安裝：Android 安裝與 Share Target 已確認；iOS「加入主畫面」已確認。
+
 ---
 
 ## 3. 架構與重要目錄
