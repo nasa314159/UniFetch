@@ -385,19 +385,31 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 
 ## 11. Git 分支與 release 狀態
 
-| 分支                               | 用途                   | 狀態                                       |
-| ---------------------------------- | ---------------------- | ------------------------------------------ |
-| `main`                             | 正式基線               | release commit `cd73025`，已推送 origin    |
-| `release/instagram-stable`         | 穩定 Instagram release | 與 `main` 同 commit，已推送 origin         |
-| `research/m8b-m8d-instagram-story` | M8B–M8D 實驗完整保存   | snapshot `72c590e`，已推送，不併入 main    |
-| `m8a-auth-extension-poc`           | M8A PoC 歷史           | `62edb18`，已推送 origin                   |
-| `m8b-story-feasibility`            | M8B 歷史指標           | `62edb18`，保留供對照                      |
-| `m8c-extension-story-download`     | 舊工作分支             | `62edb18`；內容已由 research snapshot 保存 |
+| 分支                               | 用途                   | 狀態                                        |
+| ---------------------------------- | ---------------------- | ------------------------------------------- |
+| `main`                             | 正式基線               | M9A asset commit `bfb9c0e`，已推送 origin   |
+| `release/instagram-stable`         | 穩定 Instagram release | 已 fast-forward 至 `main`（含 M9A），已推送 |
+| `research/m8b-m8d-instagram-story` | M8B–M8D 實驗完整保存   | snapshot `72c590e`，已推送，不併入 main     |
+| `m8a-auth-extension-poc`           | M8A PoC 歷史           | `62edb18`，已推送 origin                    |
+| `m8b-story-feasibility`            | M8B 歷史指標           | `62edb18`，保留供對照                       |
+| `m8c-extension-story-download`     | 舊工作分支             | `62edb18`；內容已由 research snapshot 保存  |
 
-- 穩定版 release commit：`cd73025`（`feat(extension): ship stable Instagram baseline`）
-- 其父 commit：`c02c1ea`（M8A，cherry-pick 自 `62edb18`）
-- `main` 舊基線：`b2a10e6`（`docs: add developer handoff`）
-- 本文件可能另有一個 `docs:` commit；release 內容仍以 `cd73025` 為準。
+- 穩定版 baseline commit：`cd73025`（`feat(extension): ship stable Instagram baseline`）。
+- M9A 只新增 distribution／installation UX，**未改動 Instagram resolver/download 行為**。
+- **M9A 擴充功能發佈（2026-10-23）：**
+
+  | 項目             | 值                                                                                    |
+  | ---------------- | ------------------------------------------------------------------------------------- |
+  | Version          | `0.2.0`                                                                               |
+  | Git tag          | `extension-v0.2.0` → `bfb9c0e`                                                        |
+  | GitHub Release   | https://github.com/nasa314159/UniFetch/releases/tag/extension-v0.2.0                  |
+  | ZIP              | `unifetch-chromium-extension-v0.2.0.zip`（252,431 bytes）                             |
+  | SHA-256          | `6dcfd8fda34e80c3030762cf2ae576f2f0b29f8d3ee2da9af05351031f2463f3`                    |
+  | 安裝頁           | https://unifetch.pages.dev/extension                                                  |
+  | Pages Production | deployment `5dbdc2b0-8706-42ad-8f17-034eaa2a46dc`，source `bfb9c0e`；三條路由皆 `200` |
+
+- 已從 GitHub 重新下載 release asset，SHA-256 與上表一致；ZIP 只有 4 個 runtime 檔，根目錄直接含 `manifest.json`。
+- 尚未在真實 Chrome 中重新執行「Load unpacked → 登入 Instagram → 下載」的實機流程；自動測試與 ZIP 驗證不等於瀏覽器安裝成功。
 
 禁止：force push、`git reset --hard`、`git clean -fd`、未確認就刪除未提交工作。
 
