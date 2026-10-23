@@ -15,7 +15,9 @@
     "dev:web": "pnpm --filter @unifetch/web dev",
     "dev:resolver": "pnpm --filter @unifetch/resolver-worker dev",
     "dev:extension": "pnpm --filter @unifetch/extension dev",
-    "build:extension": "pnpm --filter @unifetch/extension build"
+    "build:extension": "pnpm --filter @unifetch/extension build",
+    "package:extension": "node scripts/package-extension.mjs",
+    "release:extension": "node scripts/release-extension.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.0",

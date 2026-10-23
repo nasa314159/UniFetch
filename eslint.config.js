@@ -29,4 +29,13 @@ export default ts.config(
       'vue/max-attributes-per-line': 'off',
     },
   },
+  {
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        Buffer: 'readonly',
+        URL: 'readonly',
+      },
+    },
+  },
 );
