@@ -171,6 +171,27 @@ watch(
       </article>
     </div>
   </section>
+  <section class="extension-entry" aria-labelledby="extension-entry-title">
+    <div>
+      <p class="extension-eyebrow">DESKTOP CHROMIUM · OPTIONAL</p>
+      <h2 id="extension-entry-title">
+        Need authenticated Instagram downloads?
+      </h2>
+      <p>
+        The Web/PWA resolves public Post, Carousel and Reel links. The UniFetch
+        Browser Extension uses your existing Instagram browser session for
+        authenticated Post, Carousel and Reel downloads, plus Stories only when
+        the link already contains an explicit Story ID.
+      </p>
+      <p class="extension-note">
+        Manually installed from GitHub Releases · Not in the Chrome Web Store ·
+        Desktop Chrome / Chromium only
+      </p>
+    </div>
+    <RouterLink class="extension-entry-action" to="/extension"
+      >Install Browser Extension <span aria-hidden="true">→</span></RouterLink
+    >
+  </section>
   <aside class="transparency">
     <span class="shield" aria-hidden="true">◇</span>
     <div>
@@ -418,6 +439,58 @@ input::placeholder {
   color: var(--green);
   margin-left: auto;
 }
+.extension-entry {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  justify-content: space-between;
+  max-width: 830px;
+  margin: 34px auto 0;
+  padding: 22px 24px;
+  border: 1px solid #d6dfd2;
+  border-radius: 13px;
+  background: white;
+  box-shadow: 0 8px 26px #273e2c06;
+}
+.extension-eyebrow {
+  margin: 0 0 7px;
+  color: var(--green);
+  font-size: 9px;
+  letter-spacing: 1.6px;
+  font-weight: 650;
+}
+.extension-entry h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
+  letter-spacing: -0.4px;
+}
+.extension-entry p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.8;
+  max-width: 570px;
+}
+.extension-entry p.extension-note {
+  margin-top: 9px;
+  font-size: 10px;
+  color: #899184;
+}
+.extension-entry-action {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 15px;
+  border: 1px solid #365c43;
+  border-radius: 8px;
+  background: #365c43;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
 .transparency {
   display: flex;
   gap: 14px;
@@ -479,6 +552,17 @@ input::placeholder {
   }
   .support-section {
     margin-top: 30px;
+  }
+  .extension-entry {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+    margin-top: 25px;
+    padding: 19px;
+  }
+  .extension-entry-action {
+    width: 100%;
+    justify-content: space-between;
   }
   .demo-row {
     gap: 6px;

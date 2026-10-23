@@ -20,14 +20,25 @@ const {
           class="beta"
           >PREVIEW</span
         ></RouterLink
-      ><button
-        v-if="showInstallAction"
-        class="install"
-        :disabled="prompting"
-        @click="install"
       >
-        Install <span aria-hidden="true">↗</span></button
-      ><span v-else class="local-mark"><span></span> No media proxy</span>
+      <div class="topbar-actions">
+        <RouterLink
+          class="extension-nav"
+          to="/extension"
+          aria-label="Install Browser Extension"
+        >
+          <span class="extension-nav-long">Install Browser Extension</span>
+          <span class="extension-nav-short">Extension</span>
+        </RouterLink>
+        <button
+          v-if="showInstallAction"
+          class="install"
+          :disabled="prompting"
+          @click="install"
+        >
+          Install <span aria-hidden="true">↗</span></button
+        ><span v-else class="local-mark"><span></span> No media proxy</span>
+      </div>
     </header>
     <InstallInstructions
       :open="showInstructions"
@@ -129,7 +140,31 @@ const {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
   padding: 26px 0;
+}
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.extension-nav {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.extension-nav:hover {
+  background: white;
+}
+.extension-nav-short {
+  display: none;
 }
 .brand {
   display: flex;
@@ -184,6 +219,20 @@ footer {
 @media (max-width: 540px) {
   .topbar {
     padding: 20px 0;
+    flex-wrap: wrap;
+  }
+  .topbar-actions {
+    flex-wrap: wrap;
+  }
+  .extension-nav {
+    padding: 7px 9px;
+    font-size: 11px;
+  }
+  .extension-nav-long {
+    display: none;
+  }
+  .extension-nav-short {
+    display: inline;
   }
   .local-mark {
     font-size: 10px;
