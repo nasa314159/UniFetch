@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>UniFetch M8A PoC</title>
+    <title>UniFetch M8C PoC</title>
     <style>
       :root {
         color-scheme: light dark;
@@ -30,6 +30,24 @@
         font: inherit;
         padding: 0.4rem 0.8rem;
       }
+      input {
+        font: inherit;
+        padding: 0.35rem 0.5rem;
+      }
+      .url-row {
+        display: flex;
+        gap: 0.5rem;
+        margin: 0 0 0.75rem;
+      }
+      .url-row input {
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
       ul {
         list-style: none;
         margin: 0.75rem 0 0;
@@ -44,12 +62,31 @@
   </head>
   <body>
     <main>
-      <h1>UniFetch M8A authenticated PoC</h1>
+      <h1>UniFetch M8C authenticated PoC</h1>
+      <p id="build" role="status">Checking build…</p>
       <p>
-        Open a logged-in Instagram post or Reel tab, then run the matrix.
-        Results are sanitized: no URLs, usernames, captions or session data.
+        Open a logged-in Instagram post, Reel or Story tab, then run an action.
+        Optionally paste or type any Instagram post, Reel or Story URL to target
+        it directly. Results are sanitized: no URLs, usernames, Story ids,
+        captions or session data.
       </p>
-      <button id="run" type="button">Run authenticated matrix</button>
+      <div class="url-row">
+        <input
+          id="url-input"
+          type="url"
+          placeholder="Instagram URL"
+          aria-label="Instagram URL"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button id="paste" type="button">Paste</button>
+      </div>
+      <div class="actions">
+        <button id="resolve" type="button">Resolve</button>
+        <button id="download" type="button">Download all</button>
+        <button id="run" type="button">Run authenticated matrix</button>
+        <button id="run-story" type="button">Run Story feasibility</button>
+      </div>
       <p id="status" role="status">Idle.</p>
       <ul id="results"></ul>
     </main>

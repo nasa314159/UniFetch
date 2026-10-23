@@ -1,0 +1,23 @@
+{
+  "status": "ok",
+  "num_results": 1,
+  "items": [
+    {
+      "media_type": 1,
+      "image_versions2": {
+        "candidates": [
+          {
+            "url": "https://media.invalid/unifetch/story-image-high.jpg",
+            "width": 1080,
+            "height": 1920
+          },
+          {
+            "url": "https://media.invalid/unifetch/story-image-low.jpg",
+            "width": 320,
+            "height": 568
+          }
+        ]
+      }
+    }
+  ]
+}

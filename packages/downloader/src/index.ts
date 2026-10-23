@@ -8,6 +8,7 @@ import {
 import { finalizeDownloadFilename } from './filename';
 import { normalizeStillImage } from './image-normalization';
 export {
+  component,
   createDownloadFilename,
   finalizeDownloadFilename,
   extensionForMime,

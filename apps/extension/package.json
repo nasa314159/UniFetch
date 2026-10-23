@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@unifetch/core": "workspace:*",
+    "@unifetch/downloader": "workspace:*",
     "@unifetch/meta-resolver": "workspace:*"
   },
   "devDependencies": {

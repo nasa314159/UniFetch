@@ -58,14 +58,15 @@ export async function runBackgroundFetch(
 ): Promise<RawStrategyOutcome> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
-  const csrfUsed = Boolean(csrfToken);
+  const csrfUsed = Boolean(csrfToken && request.csrfHeader);
   try {
     const headers: Record<string, string> = { ...request.headers };
-    if (csrfToken) headers[request.csrfHeader] = csrfToken;
+    if (csrfToken && request.csrfHeader)
+      headers[request.csrfHeader] = csrfToken;
     const response = await fetchImpl(request.endpoint, {
       method: request.method,
       headers,
-      body: request.body,
+      ...(request.body !== undefined ? { body: request.body } : {}),
       credentials: 'include',
       redirect: 'follow',
       cache: 'no-store',

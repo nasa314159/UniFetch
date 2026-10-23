@@ -4,6 +4,9 @@ import { assertInstagramTabUrl } from './orchestrate';
 export type PathCategory =
   | 'post'
   | 'reel'
+  | 'story'
+  | 'story-profile-only'
+  | 'highlight'
   | 'root'
   | 'profile-like'
   | 'other'
@@ -11,7 +14,7 @@ export type PathCategory =
   | 'unavailable';
 
 export type UrlSource =
-  'scripting-location' | 'tab-url' | 'canonical' | 'og-url' | 'none';
+  'scripting-location' | 'tab-url' | 'canonical' | 'og-url' | 'manual' | 'none';
 
 /** Sanitized preflight diagnostics: no full URL, no shortcode, no query. */
 export interface PreflightDiagnostic {
@@ -19,6 +22,8 @@ export interface PreflightDiagnostic {
   source: UrlSource;
   hostname?: string;
   pathCategory: PathCategory;
+  /** Which narrow page source produced the current Story id, if any. */
+  idSource?: 'url-query' | 'history-state' | 'dom-attribute' | 'none';
 }
 
 export interface UrlCandidate {
@@ -34,6 +39,11 @@ export function categorizePath(pathname: string): PathCategory {
   if (pathname === '' || pathname === '/') return 'root';
   if (/^\/p\/[A-Za-z0-9_-]+\/?$/.test(pathname)) return 'post';
   if (/^\/reels?\/[A-Za-z0-9_-]+\/?$/.test(pathname)) return 'reel';
+  if (/^\/stories\/highlights(?:\/|$)/.test(pathname)) return 'highlight';
+  if (/^\/stories\/[A-Za-z0-9._]+\/?$/.test(pathname))
+    return 'story-profile-only';
+  if (/^\/stories\/[A-Za-z0-9._]+\/[A-Za-z0-9_-]+\/?$/.test(pathname))
+    return 'story';
   if (/^\/[A-Za-z0-9_.]+\/?$/.test(pathname)) return 'profile-like';
   return 'other';
 }
