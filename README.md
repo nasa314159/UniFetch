@@ -85,7 +85,7 @@ pnpm package:extension
 node scripts/release-extension.mjs --publish
 ```
 
-The release config lives in `apps/web/src/config/extension-release.ts`. If no verified release is configured, the installation page shows an accurate unavailable state instead of a dead download link.
+The release publishes both `unifetch-chromium-extension-vX.Y.Z.zip` and its `.sha256` file. The release config lives in `apps/web/src/config/extension-release.ts`. If no verified release is configured, the installation page shows an accurate unavailable state instead of a dead download link.
 
 Supported in the extension: authenticated Instagram Post, Carousel and Reel resolution/downloads, plus Story downloads when the URL contains an explicit Story media id (`/stories/<username>/<id>/`). Username-only Stories, Story video/audio/composite cases without an explicit id, Highlights and bulk Story enumeration are refused. The extension reads no cookies, exports no session data and contacts no UniFetch server. See [supported content](docs/supported-content.md).
 

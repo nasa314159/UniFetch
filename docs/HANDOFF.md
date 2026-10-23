@@ -403,7 +403,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
   | Version          | `0.2.0`                                                                               |
   | Git tag          | `extension-v0.2.0` → `bfb9c0e`                                                        |
   | GitHub Release   | https://github.com/nasa314159/UniFetch/releases/tag/extension-v0.2.0                  |
-  | ZIP              | `unifetch-chromium-extension-v0.2.0.zip`（252,431 bytes）                             |
+  | ZIP              | `unifetch-chromium-extension-v0.2.0.zip`（252,431 bytes）＋ `.sha256` asset           |
   | SHA-256          | `6dcfd8fda34e80c3030762cf2ae576f2f0b29f8d3ee2da9af05351031f2463f3`                    |
   | 安裝頁           | https://unifetch.pages.dev/extension                                                  |
   | Pages Production | deployment `efbf4799-5b8d-4090-8d54-19f6454769ac`，source `7f27c62`；三條路由皆 `200` |

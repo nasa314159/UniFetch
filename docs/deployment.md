@@ -98,6 +98,8 @@ node scripts/release-extension.mjs
 node scripts/release-extension.mjs --publish
 ```
 
+The release contains the ZIP and a matching `.sha256` asset.
+
 The packaging script refuses a dirty tree (only untracked `opencode.jsonc` and ignored `artifacts/` are tolerated), mismatched manifest/package versions, missing manifest-referenced files, unexpected permissions, source/development files, secret-like content, or an archive that does not round-trip with valid CRCs. The release script refuses to overwrite an existing tag or release and verifies that a fresh deterministic package matches the website checksum.
 
 The archive extracts to one top-level `unifetch-chromium-extension-vX.Y.Z/` directory containing `manifest.json`, `background.js`, `popup.html`, `popup.js` and any other manifest-referenced runtime files. There is no nested `dist/` directory.

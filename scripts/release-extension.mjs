@@ -178,6 +178,7 @@ if (publish) {
       'create',
       result.tag,
       `${result.assetPath}#${result.assetName}`,
+      `${result.assetPath}.sha256#${result.assetName}.sha256`,
       '--target',
       head,
       '--title',
@@ -196,12 +197,14 @@ if (publish) {
       'url,assets,tagName,isDraft,isPrerelease',
     ]),
   );
-  const asset = release.assets?.find((item) => item.name === result.assetName);
-  if (!asset) throw new Error('Release was created but the asset is missing');
+  for (const name of [result.assetName, `${result.assetName}.sha256`]) {
+    const asset = release.assets?.find((item) => item.name === name);
+    if (!asset) throw new Error(`Release was created but ${name} is missing`);
+    process.stdout.write(`${name}: ${asset.url}\n`);
+  }
   process.stdout.write(
     [
       `Release: ${release.url}`,
-      `Asset: ${asset.url}`,
       `Draft: ${release.isDraft}; Prerelease: ${release.isPrerelease}`,
       '',
     ].join('\n'),
