@@ -18,6 +18,7 @@ const {
       <RouterLink class="brand" to="/" aria-label="UniFetch home"
         ><img src="/icon.svg" alt="" width="34" height="34" />UniFetch<span
           class="beta"
+          aria-hidden="true"
           >PREVIEW</span
         ></RouterLink
       >

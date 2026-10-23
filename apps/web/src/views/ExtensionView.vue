@@ -371,6 +371,8 @@ async function copySettingsUrl() {
 
 <style scoped>
 .extension-page {
+  /* Keep the shared palette but meet AA contrast for the longer guide copy. */
+  --muted: #626d5f;
   max-width: 900px;
   margin: auto;
 }
@@ -745,7 +747,12 @@ code {
   font-size: 12px;
   line-height: 1.9;
 }
+.help-links li {
+  padding: 3px 0;
+}
 .help-links a {
+  display: inline-block;
+  padding: 2px 0;
   color: var(--green);
 }
 .help-links p {
