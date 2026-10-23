@@ -28,9 +28,10 @@ export const EXTENSION_RELEASE: ExtensionReleaseConfig = {
   version: '0.2.0',
   tag: 'extension-v0.2.0',
   fileName: 'unifetch-chromium-extension-v0.2.0.zip',
-  downloadUrl: null,
-  sha256: null,
-  sizeBytes: null,
+  downloadUrl:
+    'https://github.com/nasa314159/UniFetch/releases/download/extension-v0.2.0/unifetch-chromium-extension-v0.2.0.zip',
+  sha256: '6dcfd8fda34e80c3030762cf2ae576f2f0b29f8d3ee2da9af05351031f2463f3',
+  sizeBytes: 252431,
   repositoryUrl,
   releasesUrl: `${repositoryUrl}/releases`,
   installHelpUrl:
