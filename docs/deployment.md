@@ -8,6 +8,7 @@ Deploy the static Web/PWA on Cloudflare Pages and the metadata Resolver as a sep
 | --------- | ----------------------------------------------- | ------------------- |
 | Web/PWA   | Pages project `unifetch` → `unifetch.pages.dev` | Direct Upload       |
 | Resolver  | Worker `unifetch-resolver`                      | Wrangler deployment |
+| Extension | GitHub Release `extension-vX.Y.Z`               | Manual ZIP asset    |
 
 The Pages project is not connected to a Git provider; production is published from a locally built `apps/web/dist`. Do not touch other Pages projects (`linktree`, `114-514-org`), custom domains, DNS or billing. The extension is not deployed to Cloudflare.
 
@@ -55,7 +56,7 @@ The checked-in Resolver origin is the existing production Worker. Always pass `-
 
 In the authenticated Cloudflare dashboard choose Pages, Direct Upload, and upload the **contents** of `apps/web/dist` as a folder or ZIP. The archive root must contain `index.html`, not an enclosing `dist` directory. Direct Upload serves prebuilt files, so dashboard runtime variables cannot change an already-built Vite bundle; rebuild before uploading whenever the Resolver origin changes. No repository integration or new API token is required for dashboard upload.
 
-Pages serves the SPA fallback when no top-level `404.html` exists. Verify `/` and `/share`, manifest, icons and service-worker assets after deployment. Do not add Pages Functions, media relay routes or analytics.
+Pages serves the SPA fallback when no top-level `404.html` exists. Verify `/`, `/share` and `/extension`, manifest, icons and service-worker assets after deployment. The `/extension` page is shell-only: it links to a published GitHub Release asset and does not call the GitHub API at runtime. Do not add Pages Functions, media relay routes or analytics.
 
 ## Production validation
 
@@ -69,7 +70,41 @@ Metadata goes through the Resolver Worker. Media previews/downloads go directly 
 
 ## Extension
 
-The Chromium extension is a local build, not a Cloudflare artifact.
+The Chromium extension is not a Cloudflare artifact. It is distributed as a versioned GitHub Releases ZIP and loaded by users as an unpacked extension. It is not in the Chrome Web Store and does not auto-update.
+
+Maintainer release procedure, from a clean `main` or `release/instagram-stable` checkout:
+
+```sh
+pnpm install --frozen-lockfile
+pnpm test
+pnpm lint
+pnpm build
+pnpm format:check
+git diff --check
+
+# 1. Build, audit and deterministically package from the committed tree.
+pnpm package:extension
+# artifacts/unifetch-chromium-extension-vX.Y.Z.zip
+# artifacts/unifetch-chromium-extension-vX.Y.Z.zip.sha256
+# artifacts/extension-release.json
+
+# 2. Record the SHA-256 and size in
+#    apps/web/src/config/extension-release.ts, then commit that change.
+
+# 3. Verify the tag, commit, checksum and download URL.
+node scripts/release-extension.mjs
+
+# 4. Publish the GitHub Release at the pushed commit.
+node scripts/release-extension.mjs --publish
+```
+
+The packaging script refuses a dirty tree (only untracked `opencode.jsonc` and ignored `artifacts/` are tolerated), mismatched manifest/package versions, missing manifest-referenced files, unexpected permissions, source/development files, secret-like content, or an archive that does not round-trip with valid CRCs. The release script refuses to overwrite an existing tag or release and verifies that a fresh deterministic package matches the website checksum.
+
+The archive extracts to one top-level `unifetch-chromium-extension-vX.Y.Z/` directory containing `manifest.json`, `background.js`, `popup.html`, `popup.js` and any other manifest-referenced runtime files. There is no nested `dist/` directory.
+
+After publication, download the asset from GitHub, verify its SHA-256, and update `apps/web/src/config/extension-release.ts` if the published URL or checksum differs. Then rebuild/redeploy Pages so `/extension` links to the verified asset. Do not publish the web update before the release asset exists.
+
+For local development only:
 
 ```sh
 pnpm --filter @unifetch/extension build

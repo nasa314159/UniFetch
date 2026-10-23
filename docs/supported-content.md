@@ -2,7 +2,7 @@
 
 Two runtimes have different capabilities. The tiers below are deliberately separate.
 
-| Platform/content                    | Web/PWA (`unifetch.pages.dev`)                | Chromium extension (unpacked)                                                         |
+| Platform/content                    | Web/PWA (`unifetch.pages.dev`)                | Chromium extension (GitHub Releases ZIP, unpacked)                                    |
 | ----------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------- |
 | Instagram Post (single image)       | Public metadata via Resolver (tested samples) | Authenticated resolution + download (previously physically verified)                  |
 | Instagram Carousel                  | Public metadata via Resolver (tested samples) | Authenticated multi-asset resolution + sequential download (previously verified)      |
@@ -25,7 +25,7 @@ Carousel downloads are individual sequential requests after selection/Download a
 
 ## Chromium extension
 
-The extension is a local MV3 build loaded from `apps/extension/dist`. It uses the user's existing Instagram browser session through normal credentialed requests; it never reads or exports cookies, tokens or session storage.
+The extension is an MV3 build distributed as a versioned GitHub Releases ZIP and loaded manually as an unpacked extension. It is not listed in the Chrome Web Store, requires Developer mode and does not auto-update; the install guide is `https://unifetch.pages.dev/extension`. It uses the user's existing Instagram browser session through normal credentialed requests; it never reads or exports cookies, tokens or session storage.
 
 - **Post / Carousel / Reel:** background fetch first, then isolated content script, then MAIN world. The existing Resolver parser/normalizer is reused. Carousel assets download sequentially in their original order.
 - **Story:** only an explicit media id URL is accepted. The extension calls `GET /api/v1/media/<id>/info/` and downloads exactly one image or one video. It never enumerates a Story reel.

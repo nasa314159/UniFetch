@@ -36,7 +36,7 @@ API output includes Cache-Control: no-store, Pragma: no-cache and explicit confi
 
 ## Extension (authenticated, local)
 
-`apps/extension` is a Chromium MV3 extension that is built separately and loaded unpacked. It is not part of the Pages deployment. Its service worker and popup are bundled with esbuild; no server component is added.
+`apps/extension` is a Chromium MV3 extension that is built separately, packaged deterministically into a versioned GitHub Releases ZIP and loaded unpacked by users. It is not part of the Pages deployment. Its service worker and popup are bundled with esbuild; no server component is added.
 
 Flow:
 

@@ -10,6 +10,7 @@
 ## 0. 快速結論
 
 - 穩定版 Instagram 範圍：**公開 Web/PWA 的 Post / Carousel / Reel**，加上**本機 Chromium 擴充功能的登入態 Post / Carousel / Reel**，以及**URL 已含明確 media id 的 Story 圖片／影片**。
+- M9A 新增 **GitHub Releases 擴充功能 ZIP 發佈**與公開安裝頁 `/extension`。擴充功能仍未上架 Chrome Web Store，必須下載 ZIP、解壓並以開發者模式 Load unpacked；下載 ZIP 本身不會自動安裝。
 - **使用者名稱限定 Story（`/stories/<username>/`）已停用，並且是 fail-closed**：不發出請求、不掃描 DOM、不猜 ID。
 - M8B–M8D 的 Story 實驗完整保存在分支 `research/m8b-m8d-instagram-story`（snapshot commit `72c590e`）。
 - 本輪沒有重做 Instagram 實機驗證；只做程式、測試、建置與部署驗證。**請不要把自動測試通過當成 Instagram 線上功能保證。**
@@ -37,16 +38,16 @@ UniFetch 是開源、隱私導向、由使用者主動觸發的社群媒體下�
 
 ## 2. 目前支援的平台與功能
 
-| 平台／內容                       | Web/PWA `unifetch.pages.dev`       | Chromium 擴充功能（本機 unpacked）       |
-| -------------------------------- | ---------------------------------- | ---------------------------------------- |
-| Instagram Post（單圖）           | 公開中繼資料（Resolver，已測樣本） | 登入態解析＋下載（曾實機驗證）           |
-| Instagram Carousel               | 公開中繼資料（Resolver，已測樣本） | 登入態多媒體解析＋依序下載（曾實機驗證） |
-| Instagram Reel                   | 公開中繼資料（Resolver，已測樣本） | 登入態解析＋下載（曾實機驗證）           |
-| Instagram Story（URL 有明確 id） | 不支援                             | 單一圖片或影片（曾實機驗證）             |
-| Instagram Story（只有 username） | 不支援                             | **不支援，fail-closed**                  |
-| Instagram Highlights             | 不支援                             | 不支援                                   |
-| Facebook                         | 僅顯示「Coming soon」              | 未實作                                   |
-| Threads                          | 僅顯示「Coming soon」              | 未實作                                   |
+| 平台／內容                       | Web/PWA `unifetch.pages.dev`       | Chromium 擴充功能（GitHub Releases ZIP，unpacked） |
+| -------------------------------- | ---------------------------------- | -------------------------------------------------- |
+| Instagram Post（單圖）           | 公開中繼資料（Resolver，已測樣本） | 登入態解析＋下載（曾實機驗證）                     |
+| Instagram Carousel               | 公開中繼資料（Resolver，已測樣本） | 登入態多媒體解析＋依序下載（曾實機驗證）           |
+| Instagram Reel                   | 公開中繼資料（Resolver，已測樣本） | 登入態解析＋下載（曾實機驗證）                     |
+| Instagram Story（URL 有明確 id） | 不支援                             | 單一圖片或影片（曾實機驗證）                       |
+| Instagram Story（只有 username） | 不支援                             | **不支援，fail-closed**                            |
+| Instagram Highlights             | 不支援                             | 不支援                                             |
+| Facebook                         | 僅顯示「Coming soon」              | 未實作                                             |
+| Threads                          | 僅顯示「Coming soon」              | 未實作                                             |
 
 狀態用語：
 
@@ -107,15 +108,15 @@ popup → 手動 URL 或目前分頁 → background service worker
 
 ## 4. Web/PWA 與 Extension 的能力差異
 
-| 能力                                  | Web/PWA             | Extension                          |
-| ------------------------------------- | ------------------- | ---------------------------------- |
-| 公開 Instagram Post / Carousel / Reel | 有（透過 Resolver） | 有                                 |
-| 需要登入的貼文                        | 不支援              | 有（使用使用者現有瀏覽器 session） |
-| Story                                 | 不支援              | 僅明確 id                          |
-| 讀取 cookie / session                 | 不讀                | 不讀、不匯出；靠瀏覽器自動附帶     |
-| 媒體是否經過 UniFetch 伺服器          | 否                  | 否                                 |
-| 部署位置                              | Cloudflare Pages    | 使用者本機 Chrome                  |
-| 「一鍵安裝」                          | PWA 安裝            | 需開發者模式 Load unpacked         |
+| 能力                                  | Web/PWA             | Extension                                          |
+| ------------------------------------- | ------------------- | -------------------------------------------------- |
+| 公開 Instagram Post / Carousel / Reel | 有（透過 Resolver） | 有                                                 |
+| 需要登入的貼文                        | 不支援              | 有（使用使用者現有瀏覽器 session）                 |
+| Story                                 | 不支援              | 僅明確 id                                          |
+| 讀取 cookie / session                 | 不讀                | 不讀、不匯出；靠瀏覽器自動附帶                     |
+| 媒體是否經過 UniFetch 伺服器          | 否                  | 否                                                 |
+| 部署位置                              | Cloudflare Pages    | GitHub Releases；使用者本機 Chrome                 |
+| 「一鍵安裝」                          | PWA 安裝            | 下載 GitHub Releases ZIP；開發者模式 Load unpacked |
 
 **重要：** 擴充功能的登入態能力不會自動出現在 `https://unifetch.pages.dev`。Web UI 只宣稱 Post / Carousel / Reel；`apps/web/src/views/capabilities.test.ts` 會防止 Web 頁面誤宣稱 Story 或 extension 能力。
 
@@ -258,6 +259,8 @@ Extension 額外不變量：
 - 只要求 `activeTab`、`scripting`、`clipboardRead`；不要求 `cookies`、`tabs`、`history`、`webRequest`、`storage`。
 - 不自行組 `Cookie` 或 `Authorization` header；靠 `credentials: 'include'` 讓瀏覽器附帶 session。
 - popup 與 background 的 protocol marker 不一致時，所有動作維持 disabled。
+- 不得把「下載 ZIP」描述成「自動安裝」；不得聲稱已上架 Chrome Web Store。
+- Release ZIP 只包含 extension runtime，不得包含 source、`node_modules`、環境檔、credentials、`opencode.jsonc` 或研究診斷。
 
 ---
 
@@ -300,7 +303,9 @@ git diff --check
 3. 建置 `apps/resolver-worker`（Wrangler dry run）
 4. `tsc --noEmit` + esbuild 建置 `apps/extension/dist`
 
-### 10.4 Extension 載入
+### 10.4 Extension 發佈與載入
+
+本地開發用 `apps/extension/dist`：
 
 ```sh
 pnpm --filter @unifetch/extension build
@@ -308,6 +313,26 @@ pnpm --filter @unifetch/extension build
 ```
 
 每次重建後要按 Reload；popup 會檢查 protocol marker，避免舊 service worker 收到新請求。
+
+正式使用者流程（GitHub Releases，非 Chrome Web Store）：
+
+```sh
+# 1. 工作樹必須乾淨；只容許未追蹤的 opencode.jsonc 與 ignored artifacts/
+pnpm package:extension
+# artifacts/unifetch-chromium-extension-vX.Y.Z.zip
+# artifacts/unifetch-chromium-extension-vX.Y.Z.zip.sha256
+
+# 2. 把 SHA-256、size、URL 寫入 apps/web/src/config/extension-release.ts 並 commit
+# 3. 先 push 到 origin/main 或 origin/release/instagram-stable
+node scripts/release-extension.mjs            # 只驗證，不建立 release
+node scripts/release-extension.mjs --publish  # 建立 GitHub Release
+```
+
+- ZIP 只有一個頂層資料夾 `unifetch-chromium-extension-vX.Y.Z/`，裡面直接是 `manifest.json`、`background.js`、`popup.html`、`popup.js`；沒有巢狀 `dist/`。
+- 打包腳本會拒絕 dirty tree、版本不一致、manifest 引用檔缺失、權限變更、source／環境檔／secret。
+- Release 腳本會拒絕既有 tag／release，並要求新打包的 SHA-256 與網站設定一致。
+- 安裝頁：`https://unifetch.pages.dev/extension`。沒有已驗證 release 時，頁面會顯示「Release not yet available」，不會給出假下載連結。
+- 使用者需自行下載 ZIP、解壓到永久資料夾、開 `chrome://extensions`、啟用 Developer mode、Load unpacked，選到直接含 `manifest.json` 的資料夾。Chromium 會從該資料夾載入，不能刪除。
 
 ### 10.5 Web/PWA 部署（已驗證目標）
 
@@ -322,7 +347,9 @@ WRANGLER_SEND_METRICS=false npx wrangler@4 pages deploy apps/web/dist \
 - Pages 專案：`unifetch`
 - 正式網域：`https://unifetch.pages.dev`
 - 型態：Direct Upload（未接 Git provider）
-- 2026-10-23 已以此流程部署，Production alias 已更新；`/` 與 `/share` 均回 `200`。
+- 2026-10-23 已以此流程部署，Production alias 已更新；`/`、`/share` 與 `/extension` 均回 `200`。
+- 安裝頁只依賴 `apps/web/src/config/extension-release.ts` 的靜態 GitHub Releases URL，不在 runtime 呼叫 GitHub API。
+- 先確認 GitHub Release asset 真的存在且 SHA-256 正確，再部署網站；不要讓 `/extension` 指向尚未發佈的檔案。
 - **不要**省略 `--project-name`；同帳號還有 `linktree`、`114-514-org` 等其他專案。
 - 不要改 DNS、custom domain、billing。
 
@@ -344,6 +371,7 @@ Resolver 必須保持 metadata-only；不要新增 media route 或 credentials�
 ```sh
 curl -sS -o /dev/null -w '%{http_code}\n' https://unifetch.pages.dev/
 curl -sS -o /dev/null -w '%{http_code}\n' https://unifetch.pages.dev/share
+curl -sS -o /dev/null -w '%{http_code}\n' https://unifetch.pages.dev/extension
 curl -sS -o /dev/null -w '%{http_code}\n' \
   -X OPTIONS \
   -H 'Origin: https://unifetch.pages.dev' \
@@ -351,7 +379,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
   https://unifetch-resolver.cernmeow.workers.dev/api/resolve
 ```
 
-預期：`200`、`200`、`204`。
+預期：`200`、`200`、`200`、`204`。
 
 ---
 
@@ -383,7 +411,8 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 - Story Highlights：不支援。
 - Story 影片若只有 MSE/blob：不支援。
 - 多 item 的 Story 回應：拒絕，不枚舉。
-- Extension 尚未上架 Chrome Web Store；只能 unpacked 載入。
+- Extension 尚未上架 Chrome Web Store；只能從 GitHub Releases 下載 ZIP，並以 Developer mode + Load unpacked 手動安裝。
+- Extension 不會自動更新；使用者必須手動下載新 ZIP、重新載入。
 - 尚未有 extension 的自動 E2E（需要真實 Chrome + Instagram 登入）。
 - Web/PWA 公開解析仍受 Instagram 反爬／登入牆影響；失敗是預期行為。
 - 影片下載仍受 CORS／CDN 政策限制。
@@ -416,7 +445,9 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 - [ ] 用含明確 id 的 Story URL 實測圖片與影片各一。
 - [ ] 用 `/stories/<username>/` 實測，確認顯示 `UNSUPPORTED_CONTENT` 且沒有下載。
 - [ ] 用錯誤 owner 的 mock／fixture 確認 identity 被拒。
-- [ ] 確認 Web/PWA 畫面沒有出現 Story 或 extension 宣稱。
+- [ ] 確認 Web/PWA 畫面沒有出現 Story 或 extension 宣稱（`/extension` 安裝頁例外，且必須清楚標示 desktop-only 與手動安裝）。
+- [ ] 檢查 `apps/web/src/config/extension-release.ts` 的 GitHub Release URL、tag、SHA-256 與 `artifacts/extension-release.json` 一致。
+- [ ] 從 GitHub Releases 重新下載 ZIP，驗證 SHA-256，確認解壓後根目錄直接含 `manifest.json`。
 - [ ] 部署前確認 `wrangler pages project list` 只操作 `unifetch`。
 
 ---

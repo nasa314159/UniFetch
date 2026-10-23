@@ -4,7 +4,7 @@ Save media you can already access. Direct media. Transparently.
 
 UniFetch is an open-source Vue 3 web interface and installable PWA that processes one URL explicitly supplied by the user. Demo fixtures work locally. Public Instagram Post, Carousel and Reel metadata can be resolved by the open-source UniFetch Resolver within the tested public content scope. UniFetch does not proxy media files through its servers.
 
-A separate Chromium MV3 extension performs authenticated Post, Carousel, Reel and explicit-id Story acquisition inside the user's own browser session. The extension is a local, unpacked build; it is not deployed to the Web/PWA and its authenticated capabilities are not available at `https://unifetch.pages.dev`.
+A separate Chromium MV3 extension performs authenticated Post, Carousel, Reel and explicit-id Story acquisition inside the user's own browser session. The extension is distributed as a versioned, checksum-verified ZIP on GitHub Releases and loaded manually as an unpacked extension. It is not listed in the Chrome Web Store and is not part of the Web/PWA deployment; its authenticated capabilities are not available at `https://unifetch.pages.dev`. The installation guide is at [https://unifetch.pages.dev/extension](https://unifetch.pages.dev/extension).
 
 M5 adds a metadata-only Cloudflare Worker using the existing centralized Polaris profile. It requires no Instagram credentials or user account and stores no resolution history. Returned assets are direct source URLs, not relayed files. The profile is unstable; typed failures do not imply support for every public post. Live success is not guaranteed.
 
@@ -42,6 +42,19 @@ pnpm --filter @unifetch/web preview
 
 Build typechecks the web app/packages, produces `apps/web/dist`, typechecks/bundles the Worker through a Wrangler dry run, and builds the unpacked Chromium extension into `apps/extension/dist`. Tests use mocks and sanitized fixtures, never a Cloudflare account or live Instagram. Worker output and local Wrangler state are ignored.
 
+Extension release packaging is deterministic and only runs from a clean tree:
+
+```sh
+pnpm package:extension
+# artifacts/unifetch-chromium-extension-vX.Y.Z.zip
+# artifacts/unifetch-chromium-extension-vX.Y.Z.zip.sha256
+
+node scripts/release-extension.mjs           # verify tag, commit, checksum and permissions
+node scripts/release-extension.mjs --publish # create the GitHub Release
+```
+
+The archive contains one top-level `unifetch-chromium-extension-vX.Y.Z/` directory whose root directly contains `manifest.json`. It excludes source files, `node_modules`, environment files, credentials, source maps, local caches, `opencode.jsonc` and research diagnostics. The publication script refuses a dirty tree, an unpushed commit, an existing tag/release, or a checksum that does not match `apps/web/src/config/extension-release.ts`.
+
 ## Architecture
 
 - `@unifetch/core`: domain types, errors, URL validation, runtime/resolver contracts and narrow Zod API schema.
@@ -51,18 +64,28 @@ Build typechecks the web app/packages, produces `apps/web/dist`, typechecks/bund
 - `@unifetch/share-target`: supported HTTP(S) link extraction, URL → text → title.
 - `@unifetch/web`: Vue, Pinia, Vue Router, scoped CSS, shell-only PWA and configurable metadata client.
 - `@unifetch/resolver-worker`: Cloudflare runtime and metadata-only `POST /api/resolve` API.
-- `@unifetch/extension`: local Chromium MV3 extension for authenticated Post, Carousel, Reel and explicit-id Story downloads inside the user's browser.
+- `@unifetch/extension`: Chromium MV3 extension for authenticated Post, Carousel, Reel and explicit-id Story downloads inside the user's browser, distributed as a GitHub Releases ZIP.
 
 PWA → one public Instagram URL → Resolver → fixed Instagram bootstrap/metadata requests → normalized metadata and direct URLs → PWA → direct source/CDN asset request. See [architecture](docs/architecture.md).
 
-## Extension (unpacked)
+## Extension (GitHub Releases, unpacked)
 
-The extension is built locally and loaded as an unpacked Chromium extension. It is not published to the Chrome Web Store and is not part of the Pages deployment.
+The extension is distributed as a versioned ZIP on [GitHub Releases](https://github.com/nasa314159/UniFetch/releases) and loaded manually as an unpacked Chromium extension. It is not published to the Chrome Web Store, requires Developer mode and does not update automatically. Downloading the ZIP does not install anything by itself.
+
+End-user installation: [https://unifetch.pages.dev/extension](https://unifetch.pages.dev/extension). The guide covers downloading, extracting to a permanent folder, `chrome://extensions` → Developer mode → Load unpacked, selecting the folder that directly contains `manifest.json`, and opening Instagram in the same browser profile. Chromium loads the extension from that folder, so users must keep it.
+
+For maintainers:
 
 ```sh
 pnpm --filter @unifetch/extension build
-# chrome://extensions → Developer mode → Load unpacked → select apps/extension/dist
+# Local development only:
+# chrome://extensions → Developer mode → Load unpacked → apps/extension/dist
+
+pnpm package:extension
+node scripts/release-extension.mjs --publish
 ```
+
+The release config lives in `apps/web/src/config/extension-release.ts`. If no verified release is configured, the installation page shows an accurate unavailable state instead of a dead download link.
 
 Supported in the extension: authenticated Instagram Post, Carousel and Reel resolution/downloads, plus Story downloads when the URL contains an explicit Story media id (`/stories/<username>/<id>/`). Username-only Stories, Story video/audio/composite cases without an explicit id, Highlights and bulk Story enumeration are refused. The extension reads no cookies, exports no session data and contacts no UniFetch server. See [supported content](docs/supported-content.md).
 
@@ -78,7 +101,7 @@ PWA installation and OS share-target support depend on browser/OS. GET share dat
 
 ## Milestones and limitations
 
-M4A established offline parsing/normalization; M4B added the supplied acquisition profile. M4C integrated the direct pipeline. Public Image, Carousel and Reel probes each returned `BROWSER_RESTRICTION` in the tested browser environment. **M4D was intentionally skipped** because M4C had already established the runtime decision. M5 supplies remote metadata resolution while keeping media direct. M8 adds the local authenticated extension described above.
+M4A established offline parsing/normalization; M4B added the supplied acquisition profile. M4C integrated the direct pipeline. Public Image, Carousel and Reel probes each returned `BROWSER_RESTRICTION` in the tested browser environment. **M4D was intentionally skipped** because M4C had already established the runtime decision. M5 supplies remote metadata resolution while keeping media direct. M8 adds the local authenticated extension described above. M9A adds deterministic GitHub Releases packaging and the public `/extension` installation flow.
 
 Web/PWA: Instagram Post, Carousel and Reel only. Stories, Facebook and Threads are not available on the Web/PWA. The extension adds authenticated Instagram Post, Carousel, Reel and explicit-id Story support; username-only Stories remain unsupported and fail closed. M8B–M8D Story page-state/current-id/visible-media experiments were moved to `research/m8b-m8d-instagram-story` and are not part of the stable release. No alternate endpoint discovery, crawling, bulk enumeration, private-account access, login, ZIP, audio extraction or video transcoding is implemented. Direct media preview/download remains subject to source/CDN browser restrictions; no proxy workaround exists.
 
