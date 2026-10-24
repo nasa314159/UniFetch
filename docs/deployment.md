@@ -75,11 +75,14 @@ E1 extends the Chromium extension on branch `feat/threads-local-extension`. E2 r
 
 E2B ran the production optional-permission build in real headed Chrome for Testing 156. Threads access was granted through Chrome's extension Site access control (not the native first-run prompt), and the following actual files were saved: a public image, an ordered four-image carousel, native MP4, official share-link image carousel and video, and a 47-frame animated Giphy GIF. The header rule was absent after every acquisition. A tabbed Threads fetch kept `Sec-Fetch-Mode: cors` while an extension fetch received `navigate`; an Instagram workflow did not request Threads access. Removing the optional grant made the background return `PERMISSION_REQUIRED` and install no rule.
 
+The user's subsequent real-Chrome QA passed Threads image/video/carousel/GIF downloads, Instagram authenticated Post/Carousel/Reel/explicit-id Story, username-only Story fail-closed, and the native Threads **Allow** prompt. It also exposed a canonical-post failure: the supplied URL used a stale username that Threads 301-redirects to the same shortcode under its current handle. The post is a single image, not a mixed carousel. E2B now permits only an official same-shortcode username redirect, validates the SSR publisher against the final URL, and uses the final handle in `canonicalUrl`, `author` and the new Threads filenames (`threads_<current-username>_<shortcode>[_NN].<ext>`). Two real mixed image/video carousels (9 and 15 items) resolved and downloaded in order.
+
 **Still pending, and therefore blocking publication:**
 
-1. Physically accept and then deny the native first-run optional-permission prompt in real Chrome.
-2. Verify authenticated Instagram Post, Carousel, Reel and explicit-id Story downloads against the v0.3.0 candidate in a genuinely logged-in browser session.
-3. Verify a username-only Instagram Story still returns `UNSUPPORTED_CONTENT` in that authenticated session (verified logged-out here).
+1. Physically deny the native Threads optional-permission prompt in real Chrome (Allow already passed).
+2. Have the user retest the corrected canonical and share URLs for the previously failing Threads post in the production build; headless verification passed both but is not a substitute for the user's real-Chrome retest.
+
+Regression coverage uses synthetic fixtures; do not add the corrected post's live identifiers to the repository.
 
 Do not publish from the feature branch: `scripts/release-extension.mjs` accepts only `main` or `release/instagram-stable`.
 
