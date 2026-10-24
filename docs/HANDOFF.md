@@ -591,20 +591,21 @@ T1B 實作已由 `feat/threads-public-media` 以 fast-forward 方式合併到 `m
 
 ### 16.1 正式發布座標
 
-| 項目                  | 值                                                       |
-| --------------------- | -------------------------------------------------------- |
-| `main` release commit | `c92d832`                                                |
-| Resolver Worker       | `unifetch-resolver`                                      |
-| Worker deployment     | `dcabbaeb-a904-4e9e-ab94-f8b6a80d7270`                   |
-| Worker version        | `be1a078c-f101-4d3f-8e5b-270e153f1631`                   |
-| Worker URL            | `https://unifetch-resolver.cernmeow.workers.dev`         |
-| 正式 CORS             | 僅 `https://unifetch.pages.dev`                          |
-| Pages deployment      | `75dcedd7-c190-45af-b394-0e3b997b8cb4`                   |
-| Pages immutable URL   | `https://75dcedd7.unifetch.pages.dev`                    |
-| Pages production URL  | `https://unifetch.pages.dev`                             |
-| Extension             | 未變更，`v0.2.0` release asset 重新下載核對 SHA-256 一致 |
+| 項目                   | 值                                                          |
+| ---------------------- | ----------------------------------------------------------- |
+| T1C release commit     | `c92d832`                                                   |
+| 事故修復 commit        | `4df40a1`                                                   |
+| Resolver Worker        | `unifetch-resolver`                                         |
+| Worker deployment      | `98074334-7a82-4a62-bc50-613b71aaffab`                      |
+| Worker version         | `32501ed7-03c9-4dc2-970a-1c9199c5bb18`                      |
+| Worker URL             | `https://unifetch-resolver.cernmeow.workers.dev`            |
+| 正式 CORS              | 僅 `https://unifetch.pages.dev`                             |
+| Pages deployment       | `70db1fd8-de68-48f1-9377-2cc9485c946e`                      |
+| Pages deployment alias | `https://70db1fd8.unifetch.pages.dev`（會轉址到 canonical） |
+| Pages production URL   | `https://unifetch.pages.dev`                                |
+| Extension              | 未變更，`v0.2.0` release asset 重新下載核對 SHA-256 一致    |
 
-回滾參考（部署前狀態）：Worker deployment `631278e6-c02d-43fd-86ec-e5948ab3114c`（version `0a8e5ccb-084d-49af-be69-cd1a91dcb78c`）；Pages deployment `efbf4799-5b8d-4090-8d54-19f6454769ac`。
+事故前 Worker deployment 為 `dcabbaeb-a904-4e9e-ab94-f8b6a80d7270`（version `be1a078c-f101-4d3f-8e5b-270e153f1631`）。T1C 當時的 Pages deployment `75dcedd7-c190-45af-b394-0e3b997b8cb4` 在下一次部署後已不再提供 alias，不可當成穩定的回滾或測試 URL。
 
 ### 16.2 已實作
 
@@ -626,18 +627,29 @@ T1B 實作已由 `feat/threads-public-media` 以 fast-forward 方式合併到 `m
 - CORS preflight 只允許 `https://unifetch.pages.dev`，沒有 wildcard、沒有 `Access-Control-Allow-Credentials`；Worker 未出現在媒體請求路徑。
 - `/share?url=…` 會先清除 query、canonicalize Threads URL，再進行解析，最終網址為 `/`。
 - `/extension` 可存取並連到既有 `extension-v0.2.0` GitHub Release asset；實測 ZIP SHA-256 與大小仍為 `6dcfd8fda34e80c3030762cf2ae576f2f0b29f8d3ee2da9af05351031f2463f3` / 252,431 bytes。
-- `pnpm test` 795 passed（44 files）、`pnpm lint`、`pnpm typecheck`、`pnpm build`、`pnpm format:check`、`git diff --check` 均通過。
+- `pnpm test` 807 passed（46 files）、`pnpm lint`、`pnpm typecheck`、`pnpm build`、`pnpm format:check`、`git diff --check` 均通過。
 
-### 16.4 尚未驗證／已知風險
+### 16.4 生產 Resolve 事故與修復
 
-- Instagram 正式 live metadata 在 T1C 取樣時全部回 `LOGIN_REQUIRED`；無法證明目前上游仍可匿名解析。Instagram 分支程式碼與 T1B 前完全相同，Instagram 自動測試仍通過，但**live Instagram regression 在本次 release 標記為未驗證**。
+- 症狀：使用者回報 Instagram 與 Threads 都在 Resolve 階段失敗，尚未出現預覽或下載。
+- 重現：`https://75dcedd7.unifetch.pages.dev`（T1C 報告曾列出的 deployment alias）開啟後，兩個平台都顯示 `NETWORK_ERROR`。原因是該 alias origin 不在 Worker `ALLOWED_ORIGINS`，瀏覽器擋掉回應；canonical `https://unifetch.pages.dev` 當時可正常解析。
+- 另一個共用風險：舊 service worker 會繼續提供 precached 舊版 shell；T1C 使用 `registerType: 'prompt'`，但 UI 沒有實作更新提示，因此使用者可能長期停留在舊 build。
+- 修復：
+  - Web 啟動時把 `<8-hex>.unifetch.pages.dev` deployment alias 轉址到 `https://unifetch.pages.dev`，保留 path/query/hash；`/share?url=…` 也因此在 canonical 上完成查詢字串清除。
+  - PWA 改為 `registerType: 'autoUpdate'`，新的 service worker 使用 `skipWaiting`/`clientsClaim`；舊 client 可能仍需一次重新載入才會載入新 shell。
+  - Worker CORS 維持只有 `https://unifetch.pages.dev`，沒有加入 alias 或 wildcard。
+- 修復後正式瀏覽器驗證：canonical 上 Threads 貼文解析成功；Instagram 公開 carousel 解析成功（8 個 metadata assets）。alias `/extension` 與 `/share?...` 都正確轉址到 canonical。
+
+### 16.5 尚未驗證／已知風險
+
+- Instagram 正式 live metadata 在 T1C 初次檢查時曾回 `LOGIN_REQUIRED`，事故修復後重新檢查同類公開 carousel 已成功；上游可用性仍會變動，遇到 `LOGIN_REQUIRED` 屬於來源限制，不是 CORS/schema 錯誤。
 - 未在真實 Chrome 重新執行 extension「Load unpacked → Instagram 登入 → 下載」流程；extension 本次未變更。
 - GIF 僅支援已測 Giphy attachment；embed 可能只提供 200px 高度變體，且未驗證 animated WebP 或其他 GIF provider。
 - 未支援 `/t/` 短連結、`/share/` 連結、profiles、search、replies、quoted/reposted substitution、private/login、audio-only、HLS/DASH-only video。
 - Threads SSR/Relay 與 GIF embed 都是平台內部格式；未來變動時應 fail closed，不要加猜測 fallback。
 - 大型 native video（>5 MiB）在此瀏覽器自動化環境下載擷取失敗，但同一來源的 1.37 MiB MP4 下載成功；較大影片的實體下載仍應由真人裝置補測。
 
-### 16.5 安全邊界
+### 16.6 安全邊界
 
 - 只處理使用者明確提供的一個 canonical public post URL。
 - Worker 不轉發 Cookie/Authorization，不抓媒體，不代理媒體。

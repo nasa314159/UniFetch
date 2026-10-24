@@ -17,19 +17,31 @@ The Pages project is not connected to a Git provider; production is published fr
 | Item                       | Value                                                                  |
 | -------------------------- | ---------------------------------------------------------------------- |
 | Base `main`                | `6bc2ed9`                                                              |
-| Released `main`            | `c92d832` (fast-forward from `feat/threads-public-media`; branch kept) |
-| Resolver deployment        | `dcabbaeb-a904-4e9e-ab94-f8b6a80d7270`                                 |
-| Resolver version           | `be1a078c-f101-4d3f-8e5b-270e153f1631`                                 |
+| T1C release code           | `c92d832` (fast-forward from `feat/threads-public-media`; branch kept) |
+| Incident fix code          | `4df40a1`                                                              |
+| Resolver deployment        | `98074334-7a82-4a62-bc50-613b71aaffab`                                 |
+| Resolver version           | `32501ed7-03c9-4dc2-970a-1c9199c5bb18`                                 |
 | Resolver URL               | `https://unifetch-resolver.cernmeow.workers.dev`                       |
 | Resolver `ALLOWED_ORIGINS` | `https://unifetch.pages.dev` only                                      |
-| Pages deployment           | `75dcedd7-c190-45af-b394-0e3b997b8cb4`                                 |
-| Pages immutable URL        | `https://75dcedd7.unifetch.pages.dev`                                  |
+| Pages deployment           | `70db1fd8-de68-48f1-9377-2cc9485c946e`                                 |
+| Pages deployment alias     | `https://70db1fd8.unifetch.pages.dev` (redirects to canonical)         |
 | Pages production URL       | `https://unifetch.pages.dev`                                           |
 | Extension                  | unchanged `v0.2.0`; ZIP and SHA-256 rechecked from GitHub Releases     |
 
-The previous Worker deployment for rollback reference was `631278e6-c02d-43fd-86ec-e5948ab3114c` (version `0a8e5ccb-084d-49af-be69-cd1a91dcb78c`). The previous Pages deployment was `efbf4799-5b8d-4090-8d54-19f6454769ac`. Do not guess a rollback target; confirm it in Cloudflare first.
+The Worker deployment before the incident fix was `dcabbaeb-a904-4e9e-ab94-f8b6a80d7270` (version `be1a078c-f101-4d3f-8e5b-270e153f1631`). The T1C Pages deployment was `75dcedd7-c190-45af-b394-0e3b997b8cb4`; Cloudflare stopped serving that deployment alias after the next deployment. Do not guess a rollback target; confirm it in Cloudflare first.
 
-T1C production verification passed for Threads single image, native MP4 (playable preview and download), mixed video/video/image carousel (ordered downloads) and a Giphy GIF (17-frame animated GIF preserved; reduced 259×200 variant). Owner mismatch, `/t/`, profile/search/share URLs and unavailable posts failed closed. CORS preflight allowed only `https://unifetch.pages.dev`; no `Access-Control-Allow-Credentials` was present; media bytes were fetched directly from Meta/Giphy CDNs. Sampled public Instagram URLs returned `LOGIN_REQUIRED` from upstream during T1C, so live Instagram resolution is not verified in this release even though its code path is unchanged and its automated tests pass.
+T1C production verification passed for Threads single image, native MP4 (playable preview and download), mixed video/video/image carousel (ordered downloads) and a Giphy GIF (17-frame animated GIF preserved; reduced 259×200 variant). Owner mismatch, `/t/`, profile/search/share URLs and unavailable posts failed closed. CORS preflight allowed only `https://unifetch.pages.dev`; no `Access-Control-Allow-Credentials` was present; media bytes were fetched directly from Meta/Giphy CDNs.
+
+### Production resolve incident and fix
+
+The T1C report also published the deployment alias `https://75dcedd7.unifetch.pages.dev`. Opening that alias reproduces a Resolve failure on **both** platforms: the frontend origin is not in `ALLOWED_ORIGINS`, so the browser blocks the response and the UI reports `NETWORK_ERROR` before any media preview. The canonical `https://unifetch.pages.dev` origin was healthy throughout. Deployment aliases are ephemeral and are no longer user-facing URLs.
+
+The incident fix has two parts:
+
+1. The Web app redirects eight-character hexadecimal Pages deployment aliases to `https://unifetch.pages.dev`, preserving path, query and hash, before mounting the app. `/share?url=…` therefore still works from an alias by redirecting and then scrubbing the query on the canonical origin.
+2. The PWA now uses `registerType: 'autoUpdate'` with Workbox `skipWaiting`/`clientsClaim`, so a new service worker replaces an older cached shell automatically instead of waiting behind an update prompt that the app never showed. A client that already has an old worker may need one reload before the new shell is used; the next navigation is served from the new cache.
+
+A follow-up production-browser check on the canonical origin resolved both a public Threads post and a public Instagram carousel (eight metadata assets). Live Instagram availability remains upstream-dependent; a `LOGIN_REQUIRED` response is a source restriction, not a CORS or schema failure.
 
 ## Resolver
 
