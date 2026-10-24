@@ -95,6 +95,9 @@ export async function normalizeStillImage(
 ): Promise<NormalizedImage> {
   if (blob.type.toLowerCase() === 'image/jpeg')
     return { blob, converted: false, fallback: false };
+  // GIF is animation, not a still image. Keep the original bytes and timing.
+  if (blob.type.toLowerCase() === 'image/gif')
+    return { blob, converted: false, fallback: false };
   try {
     const output = await encode(blob);
     if (output.type !== 'image/jpeg' || !output.size)

@@ -91,6 +91,36 @@ describe('Direct browser downloads', () => {
       (URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0][0].type,
     ).toBe('image/webp');
   });
+  it('preserves animated GIF bytes and extension without decoding', async () => {
+    fetcher.mockResolvedValue(
+      new Response(
+        new Blob(['GIF89a fictional animation'], { type: 'image/gif' }),
+      ),
+    );
+    const decode = vi.fn();
+    vi.stubGlobal('createImageBitmap', decode);
+    await attemptBlobDownload({
+      ...asset,
+      mimeType: 'image/gif',
+      suggestedFilename: 'threads_fictional.gif',
+    });
+    expect(decode).not.toHaveBeenCalled();
+    expect(anchor.download).toBe('threads_fictional.gif');
+    expect(
+      (URL.createObjectURL as ReturnType<typeof vi.fn>).mock.calls[0][0].type,
+    ).toBe('image/gif');
+  });
+  it('keeps the GIF extension when the response MIME is generic', async () => {
+    fetcher.mockResolvedValue(
+      new Response(new Blob(['GIF89a fictional animation'], { type: '' })),
+    );
+    await attemptBlobDownload({
+      ...asset,
+      mimeType: 'image/gif',
+      suggestedFilename: 'threads_fictional.bin',
+    });
+    expect(anchor.download).toBe('threads_fictional.gif');
+  });
   it('never decodes video and preserves MP4 bytes and extension', async () => {
     fetcher.mockResolvedValue(
       new Response(new Blob(['fictional mp4'], { type: 'video/mp4' })),

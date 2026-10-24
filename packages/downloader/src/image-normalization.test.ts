@@ -16,6 +16,18 @@ describe('Still-image normalization', () => {
     });
     expect(encode).not.toHaveBeenCalled();
   });
+  it('preserves GIF bytes and animation instead of encoding a still frame', async () => {
+    const gif = new Blob(['GIF89a fictional animation'], {
+      type: 'image/gif',
+    });
+    const encode = vi.fn();
+    expect(await normalizeStillImage(gif, encode)).toEqual({
+      blob: gif,
+      converted: false,
+      fallback: false,
+    });
+    expect(encode).not.toHaveBeenCalled();
+  });
   it.each(['image/webp', 'image/png', 'image/avif'])(
     'converts %s to JPEG',
     async (type) => {

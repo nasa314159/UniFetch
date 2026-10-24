@@ -120,22 +120,27 @@ export async function prepareBlobDownload(
   if (diagnostics) diagnostics.fetch = 'succeeded';
   try {
     const source = await response.blob();
+    const preserveGif =
+      asset.type === 'image' &&
+      (asset.mimeType?.toLowerCase() === 'image/gif' ||
+        source.type.toLowerCase() === 'image/gif');
     const normalized =
-      asset.type === 'image'
+      asset.type === 'image' && !preserveGif
         ? await normalizeStillImage(source)
         : { blob: source, fallback: false };
+    const mimeType =
+      preserveGif && asset.mimeType
+        ? asset.mimeType
+        : normalized.blob.type || asset.mimeType || '';
     if (diagnostics) {
-      diagnostics.blobMime = normalized.blob.type;
+      diagnostics.blobMime = mimeType;
       diagnostics.blobSize = normalized.blob.size;
     }
     return {
       status: 'ready',
       file: {
         blob: normalized.blob,
-        filename: finalizeDownloadFilename(
-          asset.suggestedFilename,
-          normalized.blob.type,
-        ),
+        filename: finalizeDownloadFilename(asset.suggestedFilename, mimeType),
         formatFallback: normalized.fallback,
       },
     };
