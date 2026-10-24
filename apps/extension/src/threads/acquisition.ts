@@ -81,7 +81,7 @@ function isLoginPath(pathname: string): boolean {
   );
 }
 
-function assertFinalPost(
+function resolveFinalPost(
   ref: ThreadsContentRef,
   href: string,
   redirected: boolean,
@@ -274,7 +274,7 @@ export function createThreadsAcquisition(
       if (cached)
         return { html: cached.html, network: network(), ref: cached.ref };
       const page = await fetchHtml(postUrl(ref), 'post');
-      const finalRef = assertFinalPost(ref, page.finalUrl, page.redirected);
+      const finalRef = resolveFinalPost(ref, page.finalUrl, page.redirected);
       const entry = { html: page.html, ref: finalRef };
       cache.set(finalRef.canonicalUrl, entry);
       // A stale username is a valid alias for the same post. Cache the alias
