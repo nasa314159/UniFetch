@@ -40,7 +40,7 @@ Profiles, replies/profile tabs, search/discovery, `/t/` short links, `/share/` l
 
 The Threads parser requires the response's root `data.media.code` to match the requested shortcode and its `user.username` to match the requested publisher. Assets preserve source order. Direct JPEG and MP4 CDN URLs are returned; video poster images are never substituted for video. GIF-like posts (`media_type: 19`) initially expose a static placeholder, so the Worker reads the exact post's public embed page, verifies the same post and publisher, and extracts the direct Giphy GIF URL from the embed's image proxy parameter. The placeholder and Open Graph image are never treated as the GIF. The browser downloads the direct GIF bytes and keeps the animated GIF format.
 
-Threads media was live-validated for public single image, 20-image carousel, native video, video carousel child and GIF post through both local `workerd` and a `wrangler dev --remote` Cloudflare edge session. Actual browser downloads produced JPEG, MP4 and a 26-frame animated GIF. These are tested samples; no universal coverage or private-content support is claimed.
+Threads media was live-validated for public single image, 20-image carousel, native video, video carousel child and GIF post through both local `workerd` and a `wrangler dev --remote` Cloudflare edge session. Actual browser downloads produced JPEG images, four ordered carousel JPEGs, MP4 and a 26-frame animated GIF. These are tested samples; no universal coverage or private-content support is claimed.
 
 ## Chromium extension
 

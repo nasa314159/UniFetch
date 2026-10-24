@@ -604,7 +604,7 @@ T1B 已在 `feat/threads-public-media` 分支完成，尚未合併 `main`、尚�
 - 公開 Threads single image、20-image carousel、native video、video carousel child、GIF。
 - 本地 `workerd` 與 `wrangler dev --remote` Cloudflare edge 都成功回傳 SSR metadata。
 - CDN 回應 JPEG/MP4/GIF 且允許 CORS；GIF 為 26-frame animated GIF。
-- 實際瀏覽器下載成功：JPEG、MP4、174,276-byte animated GIF。
+- 實際瀏覽器下載成功：JPEG、四張依原始順序的 carousel JPEG、MP4、174,276-byte animated GIF。
 - Owner mismatch、invalid code、`/t/`、profile URL 都在 Worker 端 typed fail-closed。
 - `pnpm test`、`pnpm lint`、`pnpm build`、`pnpm format:check` 與 `git diff --check` 需在最終 commit 前全部通過。
 
