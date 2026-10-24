@@ -61,18 +61,27 @@ Production checks for T1D resolved two distinct public share links to their cano
 
 Instagram is unchanged and remains **not restored**: a production-edge diagnostic showed the anonymous bootstrap returning `200` with CSRF, then the fixed public metadata query returning HTTP `401` JSON classified as `LOGIN_REQUIRED`. The same public request succeeds from a residential network. That is an upstream anonymous-access restriction for Cloudflare egress, not a parser, CORS, service-worker or deployment defect. Do not weaken identity checks or add authenticated/session-based acquisition to the Web path.
 
-## E1 Threads local-extension candidate (2026-10-24)
+## E1/E2 Threads local-extension candidate (2026-10-24)
 
-E1 extends the Chromium extension on branch `feat/threads-local-extension`. It is **not merged and not published**. The existing `extension-v0.2.0` GitHub Release and ZIP remain the rollback baseline and must not be modified.
+E1 extends the Chromium extension on branch `feat/threads-local-extension`. E2 reviewed and validated the candidate. It is **not merged and not published**. The existing `extension-v0.2.0` GitHub Release and ZIP remain the rollback baseline and must not be modified.
 
 - Extension source/version: `0.3.0` candidate (`apps/extension/manifest.json`, `apps/extension/package.json`).
 - Website `apps/web/src/config/extension-release.ts`: intentionally still points at the verified v0.2.0 asset.
-- New required permission: `declarativeNetRequestWithHostAccess`, used only for a temporary `threads.com` navigation-header rule. It blocks nothing and is removed after acquisition.
+- New required permission: `declarativeNetRequestWithHostAccess`, used only for a temporary navigation-header rule. E2 restricted it to non-tab extension requests (`tabIds: [-1]`) for `xmlhttprequest` on the exact `https://www.threads.com/` origin. It blocks nothing and is removed after acquisition or on worker restart.
 - New optional host permission: `https://www.threads.com/*`, requested only from a Threads Resolve/Download action. Instagram remains on the existing required `https://www.instagram.com/*` grant.
 - Threads acquisitions use `credentials: 'omit'`; the browser session is not attached.
-- Packaging is unchanged (`pnpm package:extension` then `scripts/release-extension.mjs`). Do not run `--publish` until the v0.3.0 checks have passed and the website configuration has been updated in the release commit.
+- E2A fixed three release-gate defects: the session rule previously matched ordinary Threads tabs; each resolution created its own rule lease; and an unanswered optional-permission prompt could hang the popup. The rule now has a hard tab/origin/type boundary, all resolutions share one serialized lease, and the prompt is bounded at 60 seconds.
+- Packaging is unchanged (`pnpm package:extension` then `scripts/release-extension.mjs`). Do not run `--publish` until the manual gates below pass and the website configuration has been updated in the release commit.
 
-Local validation used a fresh Chrome for Testing profile with no Threads or Instagram cookies and a locally required Threads host permission (to bypass the native optional-permission prompt in headless automation). Public Threads image, mixed carousel, native MP4, official share-link image/video and Giphy GIF checks produced actual files. The production optional-permission prompt itself was not physically clicked in this environment; its grant/deny helper is covered by automated tests. Authenticated Instagram success was not re-run.
+E2B ran the production optional-permission build in real headed Chrome for Testing 156. Threads access was granted through Chrome's extension Site access control (not the native first-run prompt), and the following actual files were saved: a public image, an ordered four-image carousel, native MP4, official share-link image carousel and video, and a 47-frame animated Giphy GIF. The header rule was absent after every acquisition. A tabbed Threads fetch kept `Sec-Fetch-Mode: cors` while an extension fetch received `navigate`; an Instagram workflow did not request Threads access. Removing the optional grant made the background return `PERMISSION_REQUIRED` and install no rule.
+
+**Still pending, and therefore blocking publication:**
+
+1. Physically accept and then deny the native first-run optional-permission prompt in real Chrome.
+2. Verify authenticated Instagram Post, Carousel, Reel and explicit-id Story downloads against the v0.3.0 candidate in a genuinely logged-in browser session.
+3. Verify a username-only Instagram Story still returns `UNSUPPORTED_CONTENT` in that authenticated session (verified logged-out here).
+
+Do not publish from the feature branch: `scripts/release-extension.mjs` accepts only `main` or `release/instagram-stable`.
 
 Use the existing authenticated Wrangler installation. From the repository root:
 
