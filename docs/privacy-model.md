@@ -12,11 +12,13 @@ All upstream requests and API responses use no-store. There is no Worker Cache A
 
 ## Extension trust boundary
 
-The Chromium extension runs entirely on the user's device and uses the existing Instagram browser session via normal credentialed requests. It does not read `document.cookie`, does not request the `cookies` permission, does not use `chrome.storage`, `localStorage` or `indexedDB`, and does not contact the UniFetch Resolver. No session value is included in a request header by application code and no session value is returned to the popup.
+The Chromium extension runs entirely on the user's device. Its Instagram path uses the existing Instagram browser session via normal credentialed requests. Its Threads path is public-only and independent: every Threads metadata request is sent with `credentials: 'omit'`, so an authenticated Threads session is never attached. The extension does not read `document.cookie`, does not request the `cookies` permission, does not use `chrome.storage`, `localStorage` or `indexedDB`, and does not contact the UniFetch Resolver. No session value is included in a request header by application code and no session value is returned to the popup.
 
-Resolved assets and target fingerprints live only in popup/service-worker memory. Explicit downloads write files to the user's device. The extension has `activeTab`, `scripting` and `clipboardRead` only; clipboard text is read only after an explicit Paste click and is never persisted.
+Resolved assets and target fingerprints live only in popup/service-worker memory. Explicit downloads write files to the user's device. The extension requires `activeTab`, `scripting`, `clipboardRead` and the host-scoped `declarativeNetRequestWithHostAccess` API. Instagram host access remains required; Threads host access is an optional `https://www.threads.com/*` grant requested only from a Threads action. Clipboard text is read only after an explicit Paste click and is never persisted.
 
-Story identity is validated before exposure: a response publisher that differs from the route username is rejected. Username-only Story URLs are refused before any request, so the extension does not perform Story discovery or enumeration.
+For Threads, the required `declarativeNetRequestWithHostAccess` permission installs a temporary session rule that only sets `Sec-Fetch-*`/`Upgrade-Insecure-Requests` navigation headers for extension requests to `threads.com`; Threads returns usable SSR metadata only for navigation-like requests. The rule adds no cookies, blocks nothing and is removed after the acquisition. The request itself still uses `credentials: 'omit'`. This was verified with a pre-existing Threads cookie: the extension request carried no `Cookie` header and the cookie remained untouched.
+
+Story identity is validated before exposure: a response publisher that differs from the route username is rejected. Username-only Story URLs are refused before any request, so the extension does not perform Story discovery or enumeration. Threads identity uses the existing exact-post parser: both shortcode and publisher must match the requested post; private/login-required content fails closed.
 
 ## Trace semantics
 

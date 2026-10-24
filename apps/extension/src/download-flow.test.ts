@@ -74,6 +74,30 @@ describe('downloadAllCurrentTarget', () => {
     expect(outcome.cache).toEqual(cache('manual:u', [asset('a')]));
   });
 
+  it('labels a Threads download with its platform', async () => {
+    const resolve = vi.fn(async (): Promise<ExtensionResolveResponse> => ({
+      ok: true,
+      platform: 'threads',
+      contentType: 'post',
+      assets: [asset('a')],
+    }));
+    const download = vi.fn(async (assets: readonly MediaAsset[]) => ({
+      requested: assets.length,
+      failed: 0,
+    }));
+    const outcome = await downloadAllCurrentTarget({
+      fingerprint: 'manual:threads',
+      resolve,
+      download,
+    });
+    expect(outcome.message).toBe('Threads Post downloaded · 1 asset(s)');
+    expect(outcome.cache).toMatchObject({
+      fingerprint: 'manual:threads',
+      platform: 'threads',
+      contentType: 'post',
+    });
+  });
+
   it('reuses matching cached assets and skips re-resolving', async () => {
     const resolve = vi.fn(async () => success('post', [asset('x')]));
     const download = vi.fn(async (assets: readonly MediaAsset[]) => ({

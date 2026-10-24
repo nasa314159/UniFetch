@@ -61,7 +61,18 @@ Production checks for T1D resolved two distinct public share links to their cano
 
 Instagram is unchanged and remains **not restored**: a production-edge diagnostic showed the anonymous bootstrap returning `200` with CSRF, then the fixed public metadata query returning HTTP `401` JSON classified as `LOGIN_REQUIRED`. The same public request succeeds from a residential network. That is an upstream anonymous-access restriction for Cloudflare egress, not a parser, CORS, service-worker or deployment defect. Do not weaken identity checks or add authenticated/session-based acquisition to the Web path.
 
-## Resolver
+## E1 Threads local-extension candidate (2026-10-24)
+
+E1 extends the Chromium extension on branch `feat/threads-local-extension`. It is **not merged and not published**. The existing `extension-v0.2.0` GitHub Release and ZIP remain the rollback baseline and must not be modified.
+
+- Extension source/version: `0.3.0` candidate (`apps/extension/manifest.json`, `apps/extension/package.json`).
+- Website `apps/web/src/config/extension-release.ts`: intentionally still points at the verified v0.2.0 asset.
+- New required permission: `declarativeNetRequestWithHostAccess`, used only for a temporary `threads.com` navigation-header rule. It blocks nothing and is removed after acquisition.
+- New optional host permission: `https://www.threads.com/*`, requested only from a Threads Resolve/Download action. Instagram remains on the existing required `https://www.instagram.com/*` grant.
+- Threads acquisitions use `credentials: 'omit'`; the browser session is not attached.
+- Packaging is unchanged (`pnpm package:extension` then `scripts/release-extension.mjs`). Do not run `--publish` until the v0.3.0 checks have passed and the website configuration has been updated in the release commit.
+
+Local validation used a fresh Chrome for Testing profile with no Threads or Instagram cookies and a locally required Threads host permission (to bypass the native optional-permission prompt in headless automation). Public Threads image, mixed carousel, native MP4, official share-link image/video and Giphy GIF checks produced actual files. The production optional-permission prompt itself was not physically clicked in this environment; its grant/deny helper is covered by automated tests. Authenticated Instagram success was not re-run.
 
 Use the existing authenticated Wrangler installation. From the repository root:
 
@@ -151,7 +162,7 @@ node scripts/release-extension.mjs
 node scripts/release-extension.mjs --publish
 ```
 
-The release contains the ZIP and a matching `.sha256` asset.
+The release contains the ZIP and a matching `.sha256` asset. For v0.3.0, the release notes must mention public-only local Threads support, the optional `threads.com` host permission and the host-scoped `declarativeNetRequestWithHostAccess` permission. Do not publish from the feature branch: `scripts/release-extension.mjs` accepts only `main` or `release/instagram-stable`.
 
 The packaging script refuses a dirty tree (only untracked `opencode.jsonc` and ignored `artifacts/` are tolerated), mismatched manifest/package versions, missing manifest-referenced files, unexpected permissions, source/development files, secret-like content, or an archive that does not round-trip with valid CRCs. The release script refuses to overwrite an existing tag or release and verifies that a fresh deterministic package matches the website checksum.
 

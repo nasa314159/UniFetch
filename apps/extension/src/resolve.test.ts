@@ -169,6 +169,46 @@ describe('unified resolve response -> popup download state', () => {
       ).message,
     ).toBe('Reel failed · PARSER_OUTDATED');
   });
+
+  it('labels Threads results and distinguishes GIF/video media', () => {
+    const gif: MediaAsset = {
+      ...asset('gif'),
+      mimeType: 'image/gif',
+      suggestedFilename: 'threads_demo.gif',
+    };
+    expect(
+      applyResolveResponse({
+        ok: true,
+        platform: 'threads',
+        contentType: 'post',
+        assets: [gif],
+      }).message,
+    ).toBe('Threads Post resolved · 1 asset(s) · gif');
+    expect(
+      applyResolveResponse({
+        ok: true,
+        platform: 'threads',
+        contentType: 'post',
+        assets: [asset('video', 'video')],
+      }).message,
+    ).toBe('Threads Post resolved · 1 asset(s) · video');
+    expect(
+      applyResolveResponse({
+        ok: false,
+        platform: 'threads',
+        contentType: 'post',
+        error: 'CONTENT_UNAVAILABLE',
+      }).message,
+    ).toBe('Threads Post failed · CONTENT_UNAVAILABLE');
+    expect(
+      applyResolveResponse({
+        ok: false,
+        platform: 'threads',
+        contentType: 'post',
+        error: 'PERMISSION_REQUIRED',
+      }).message,
+    ).toBe('Threads Post failed · PERMISSION_REQUIRED');
+  });
 });
 
 describe('manual URL resolution path', () => {
@@ -218,6 +258,9 @@ describe('download orchestration', () => {
     );
     expect(describeDownload('post', summary)).toBe(
       'Post not downloaded · DOWNLOAD_FAILED',
+    );
+    expect(describeDownload('post', summary, 'threads')).toBe(
+      'Threads Post not downloaded · DOWNLOAD_FAILED',
     );
   });
 });

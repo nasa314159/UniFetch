@@ -14,9 +14,11 @@ const manifest = JSON.parse(manifestSource) as {
 const packageJson = JSON.parse(packageSource) as { version: string };
 
 describe('verified extension release configuration', () => {
-  it('matches the extension manifest, package and versioned archive name', () => {
-    expect(EXTENSION_RELEASE.version).toBe(manifest.version);
-    expect(EXTENSION_RELEASE.version).toBe(packageJson.version);
+  it('matches the published release and keeps a newer source candidate separate', () => {
+    // The website intentionally keeps the last published asset (v0.2.0) until a
+    // new GitHub Release exists. The source manifest may already be a newer
+    // release candidate, but its own package metadata must stay in lockstep.
+    expect(manifest.version).toBe(packageJson.version);
     expect(EXTENSION_RELEASE.fileName).toBe(
       `unifetch-chromium-extension-v${EXTENSION_RELEASE.version}.zip`,
     );
@@ -26,6 +28,14 @@ describe('verified extension release configuration', () => {
     expect(EXTENSION_RELEASE.minChromeVersion).toBe(
       manifest.minimum_chrome_version,
     );
+    const published = EXTENSION_RELEASE.version.split('.').map(Number);
+    const source = manifest.version.split('.').map(Number);
+    expect(source.length).toBe(3);
+    expect(published.length).toBe(3);
+    expect(
+      source[0] > published[0] ||
+        (source[0] === published[0] && source[1] >= published[1]),
+    ).toBe(true);
   });
 
   it('keeps download URLs and checksums internally consistent', () => {

@@ -7,7 +7,7 @@
  * No persistence, no storage permission, no network request and no
  * user/session/URL data: the handshake carries two opaque build markers only.
  */
-export const EXTENSION_PROTOCOL_VERSION = 'unifetch-instagram-1';
+export const EXTENSION_PROTOCOL_VERSION = 'unifetch-local-2';
 
 /** Short marker shown in the popup; tied to the shared protocol version. */
 export const EXTENSION_BUILD_MARKER = EXTENSION_PROTOCOL_VERSION;

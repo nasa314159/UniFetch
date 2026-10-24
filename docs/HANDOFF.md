@@ -1,8 +1,8 @@
 # UniFetch 交接文件（Instagram 穩定期）
 
 > 語言：Traditional Chinese（繁體中文）
-> 適用對象：接手 Instagram 維護、或準備開始 Threads / Facebook 的工程師
-> 最後更新：2026-10-23（Instagram 穩定期）
+> 適用對象：接手 Instagram / Threads 維護、或準備開始 Facebook 的工程師
+> 最後更新：2026-10-24（E1 Threads 本機擴充功能候選）
 > 本文件是交接入口。英文的產品／隱私細節仍以 `README.md`、`docs/supported-content.md`、`docs/privacy-model.md` 為準。
 
 ---
@@ -10,11 +10,13 @@
 ## 0. 快速結論
 
 - 穩定版 Instagram 範圍：**公開 Web/PWA 的 Post / Carousel / Reel**，加上**本機 Chromium 擴充功能的登入態 Post / Carousel / Reel**，以及**URL 已含明確 media id 的 Story 圖片／影片**。
+- E1 在分支 `feat/threads-local-extension` 加入 **Chromium 擴充功能的公開 Threads 貼文下載**（圖片、圖片 carousel、原生 MP4、混合 carousel、已測 Giphy GIF、官方 `/share/` 連結）。**尚未合併 `main`、尚未發佈**；`extension-v0.2.0` 仍是正式回滾基準。
+- Threads 擴充功能路徑是 **public-only**：所有 Threads metadata 請求使用 `credentials: 'omit'`，不帶使用者登入態；另用窄範圍 `declarativeNetRequestWithHostAccess` session rule 補上 Threads SSR 需要的 navigation headers，請求結束即移除。
 - M9A 新增 **GitHub Releases 擴充功能 ZIP 發佈**與公開安裝頁 `/extension`。擴充功能仍未上架 Chrome Web Store，必須下載 ZIP、解壓並以開發者模式 Load unpacked；下載 ZIP 本身不會自動安裝。
 - **使用者名稱限定 Story（`/stories/<username>/`）已停用，並且是 fail-closed**：不發出請求、不掃描 DOM、不猜 ID。
 - M8B–M8D 的 Story 實驗完整保存在分支 `research/m8b-m8d-instagram-story`（snapshot commit `72c590e`）。
-- 本輪沒有重做 Instagram 實機驗證；只做程式、測試、建置與部署驗證。**請不要把自動測試通過當成 Instagram 線上功能保證。**
-- 下一階段建議：先做 Threads 的小型 resolver adapter（唯讀公開貼文），再對 Facebook 做可行性分析。不要重寫 UniFetch 架構。
+- 本輪沒有重做 Instagram 登入態實機驗證；只做程式、測試、建置與 Threads 匿名實機驗證。**請不要把自動測試通過當成 Instagram 線上功能保證。**
+- 下一階段建議：先完成 E1 的 v0.3.0 發佈審查與真人工 optional permission 檢查，再做 Facebook 可行性分析。不要重寫 UniFetch 架構。
 
 ---
 
@@ -47,7 +49,9 @@ UniFetch 是開源、隱私導向、由使用者主動觸發的社群媒體下�
 | Instagram Story（只有 username） | 不支援                                 | **不支援，fail-closed**                            |
 | Instagram Highlights             | 不支援                                 | 不支援                                             |
 | Facebook                         | 僅顯示「Coming soon」                  | 未實作                                             |
-| Threads Post（公開）             | 公開中繼資料（Resolver，T1C 正式驗證） | 未實作                                             |
+| Threads Post（公開）             | 公開中繼資料（Resolver，T1C 正式驗證） | 公開貼文本機解析＋下載（E1 v0.3.0 候選，未發佈）   |
+| Threads `/share/<token>/`        | 單次展開後解析（T1D 正式驗證）         | 有（候選；單次 redirect 後驗證 canonical post）    |
+| Threads GIF（已測 Giphy）        | 公開中繼資料＋embed fallback           | 有（候選；保留原始 animated GIF）                  |
 
 狀態用語：
 
@@ -98,7 +102,9 @@ Web/PWA:
 Extension:
 popup → 手動 URL 或目前分頁 → background service worker
       → Instagram（credentials: include；不自行組 Cookie header）
-      → 既有 parser/normalizer → 記憶體中的 MediaAsset
+      → 既有 Instagram parser/normalizer → 記憶體中的 MediaAsset
+      → Threads（credentials: omit；只打官方 www.threads.com）
+      → 既有 Threads parser／share validator／GIF fallback／normalizer
       → 瀏覽器原生下載（CDN → 裝置）
 ```
 
@@ -111,9 +117,13 @@ popup → 手動 URL 或目前分頁 → background service worker
 | 能力                                  | Web/PWA             | Extension                                          |
 | ------------------------------------- | ------------------- | -------------------------------------------------- |
 | 公開 Instagram Post / Carousel / Reel | 有（透過 Resolver） | 有                                                 |
-| 需要登入的貼文                        | 不支援              | 有（使用使用者現有瀏覽器 session）                 |
-| Story                                 | 不支援              | 僅明確 id                                          |
-| 讀取 cookie / session                 | 不讀                | 不讀、不匯出；靠瀏覽器自動附帶                     |
+| 需要登入的 Instagram 貼文             | 不支援              | 有（使用使用者現有瀏覽器 session）                 |
+| Instagram Story                       | 不支援              | 僅明確 id                                          |
+| 公開 Threads 貼文／carousel／影片     | 有（透過 Resolver） | 有（E1 候選；public-only、credentials omit）       |
+| Threads `/share/`                     | 有（單次展開）      | 有（E1 候選；單次 redirect 後驗證）                |
+| Threads GIF（Giphy）                  | 有                  | 有（E1 候選；保留動畫）                            |
+| 讀取 Instagram cookie / session       | 不讀                | 不讀、不匯出；靠瀏覽器自動附帶                     |
+| 讀取 Threads session                  | 不讀                | 不讀；請求使用 `credentials: 'omit'`               |
 | 媒體是否經過 UniFetch 伺服器          | 否                  | 否                                                 |
 | 部署位置                              | Cloudflare Pages    | GitHub Releases；使用者本機 Chrome                 |
 | 「一鍵安裝」                          | PWA 安裝            | 下載 GitHub Releases ZIP；開發者模式 Load unpacked |
@@ -256,8 +266,9 @@ Snapshot commit：`72c590e`（`chore(research): snapshot M8B-M8D Instagram Story
 
 Extension 額外不變量：
 
-- 只要求 `activeTab`、`scripting`、`clipboardRead`；不要求 `cookies`、`tabs`、`history`、`webRequest`、`storage`。
-- 不自行組 `Cookie` 或 `Authorization` header；靠 `credentials: 'include'` 讓瀏覽器附帶 session。
+- Required API permissions：`activeTab`、`scripting`、`clipboardRead`、`declarativeNetRequestWithHostAccess`；required host permission 只有 `https://www.instagram.com/*`。optional host permission 只有 `https://www.threads.com/*`，且只從 Threads 的 Resolve/Download 使用者手勢請求。不要求 `cookies`、`tabs`、`history`、`webRequest`、`storage`、`<all_urls>`。
+- Instagram 不自行組 `Cookie` 或 `Authorization` header；靠 `credentials: 'include'` 讓瀏覽器附帶 session。
+- Threads 所有 metadata 請求使用 `credentials: 'omit'`；不得改用登入態頁面、cookie 或 `chrome.cookies`。DNR session rule 只可修改 `threads.com` 的 navigation headers，不可加 cookie、不可封鎖請求，且每次 acquisition 後移除。
 - popup 與 background 的 protocol marker 不一致時，所有動作維持 disabled。
 - 不得把「下載 ZIP」描述成「自動安裝」；不得聲稱已上架 Chrome Web Store。
 - Release ZIP 只包含 extension runtime，不得包含 source、`node_modules`、環境檔、credentials、`opencode.jsonc` 或研究診斷。
@@ -291,6 +302,7 @@ pnpm dev:web
 ```sh
 pnpm test
 pnpm lint
+pnpm typecheck
 pnpm build
 pnpm format:check
 git diff --check
@@ -385,14 +397,15 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 
 ## 11. Git 分支與 release 狀態
 
-| 分支                               | 用途                   | 狀態                                        |
-| ---------------------------------- | ---------------------- | ------------------------------------------- |
-| `main`                             | 正式基線               | M9A asset commit `bfb9c0e`，已推送 origin   |
-| `release/instagram-stable`         | 穩定 Instagram release | 已 fast-forward 至 `main`（含 M9A），已推送 |
-| `research/m8b-m8d-instagram-story` | M8B–M8D 實驗完整保存   | snapshot `72c590e`，已推送，不併入 main     |
-| `m8a-auth-extension-poc`           | M8A PoC 歷史           | `62edb18`，已推送 origin                    |
-| `m8b-story-feasibility`            | M8B 歷史指標           | `62edb18`，保留供對照                       |
-| `m8c-extension-story-download`     | 舊工作分支             | `62edb18`；內容已由 research snapshot 保存  |
+| 分支                               | 用途                   | 狀態                                       |
+| ---------------------------------- | ---------------------- | ------------------------------------------ |
+| `main`                             | 正式基線               | `d86080a`（T1D docs），已推送 origin       |
+| `feat/threads-local-extension`     | E1 Threads 擴充功能    | 本次工作分支；未合併 main、未發佈          |
+| `release/instagram-stable`         | 穩定 Instagram release | 既有 branch，**本輪未修改**                |
+| `research/m8b-m8d-instagram-story` | M8B–M8D 實驗完整保存   | snapshot `72c590e`，已推送，不併入 main    |
+| `m8a-auth-extension-poc`           | M8A PoC 歷史           | `62edb18`，已推送 origin                   |
+| `m8b-story-feasibility`            | M8B 歷史指標           | `62edb18`，保留供對照                      |
+| `m8c-extension-story-download`     | 舊工作分支             | `62edb18`；內容已由 research snapshot 保存 |
 
 - 穩定版 baseline commit：`cd73025`（`feat(extension): ship stable Instagram baseline`）。
 - M9A 只新增 distribution／installation UX，**未改動 Instagram resolver/download 行為**。
@@ -427,6 +440,9 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 - Extension 尚未上架 Chrome Web Store；只能從 GitHub Releases 下載 ZIP，並以 Developer mode + Load unpacked 手動安裝。
 - Extension 不會自動更新；使用者必須手動下載新 ZIP、重新載入。
 - 尚未有 extension 的自動 E2E（需要真實 Chrome + Instagram 登入）。
+- E1 Threads 的 optional permission 原生 prompt 尚未真人點擊；production build 的「未授權即拒絕」與 helper 測試已通過。
+- E1 Threads 只在全新、無登入 cookie 的 profile 對公開樣本驗證成功；需要登入的 Threads 貼文會 typed fail closed，屬預期。
+- Instagram 登入態 Post/Carousel/Reel/explicit-id Story 本輪未重跑實機。
 - Web/PWA 公開解析仍受 Instagram 反爬／登入牆影響；失敗是預期行為。
 - 影片下載仍受 CORS／CDN 政策限制。
 - 檔名時間戳依賴回應欄位；不可靠時只放日期，不發明時間。
@@ -440,7 +456,8 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 
 ### 延後
 
-- Threads、Facebook。
+- Facebook。
+- Threads 擴充功能的正式 v0.3.0 發佈（E1 已完成候選，尚未 publish）。
 - Story username-only 的替代方案。
 - Chrome Web Store 上架、簽章、自動更新。
 - Native runtime。
@@ -624,7 +641,7 @@ T1D 追加座標（Threads 分享連結）：
 - `resolverApiResponseSchema` 允許 `platform: 'threads'`。
 - Web client 將 canonical Threads URL 送至 Resolver；Result UI 顯示實際平台、Video/GIF/Carousel，隱私文案不再硬寫 Instagram。
 - Downloader 對 `image/gif` 保留原始 bytes 與動畫，不再轉成 JPEG；Instagram 圖片正規化行為不變。
-- `HomeView` 將 Threads 標為 public capability；Facebook 仍為 planned；Extension 未加入 Threads host permission。
+- `HomeView` 將 Threads 標為 public capability；Facebook 仍為 planned；T1C 當時 extension 未加入 Threads host permission（E1 之後在 feature branch 加入 optional permission，尚未發佈）。
 
 ### 16.3 正式環境已驗證
 
@@ -675,7 +692,79 @@ T1D 追加座標（Threads 分享連結）：
 
 ---
 
-## 17. 相關文件
+## 17. E1 Threads 本機擴充功能（2026-10-24，候選未發佈）
+
+### 17.1 狀態與範圍
+
+- 分支：`feat/threads-local-extension`，從 `main` `d86080a` 開出。**未合併 `main`、未修改 `release/instagram-stable`、未建立 `extension-v0.3.0` tag/release。**
+- 擴充功能原始碼版本：`0.3.0` 候選；`apps/web/src/config/extension-release.ts` 仍指向已驗證的 `v0.2.0` asset。
+- `extension-v0.2.0` ZIP、SHA-256、GitHub Release 與 `/extension` 安裝連結**完全未變**，可作為回滾基準。
+- 支援：公開 Threads 單圖、圖片 carousel、原生 MP4、混合 image/video carousel、已測 Giphy GIF、官方 `/share/<token>/`。Canonical 與 share 都沿用既有 `packages/meta-resolver/src/threads/` parser、publisher/shortcode 驗證、share-location 驗證、GIF embed fallback 與 normalizer，沒有在 extension 內重寫一套 Threads parser。
+- 不支援：private/login-required、profile/search/`/t/`、非 post share、audio-only、quoted/reposted substitution、任意枚舉、HLS/DASH 或轉碼。
+
+### 17.2 擴充功能架構
+
+```text
+popup（Instagram / Threads 平台路由）
+  → background service worker
+  → Instagram：既有 background → isolated → MAIN 策略，credentials: include
+  → Threads：threads/acquisition.ts
+       - 只建構 https://www.threads.com/@user/post/code/、/embed、/share/token/
+       - credentials: 'omit'、redirect: follow、cache: no-store、10 秒 timeout
+       - 4 MiB HTML 上限、官方 origin／path 驗證
+       - share 只接受瀏覽器跟隨後的最終 canonical post
+  → 既有 Threads parser/share validator/GIF fallback/normalizer
+  → 共用 downloader（直接 CDN → 使用者裝置）
+```
+
+Threads 的 SSR metadata 只對「navigation-like」請求提供；一般 browser fetch 會收到精簡 shell。E1 使用 `threads/header-rule.ts` 安裝一個 **session-scoped** `declarativeNetRequestWithHostAccess` 規則，只對 extension 發往 `threads.com` 的請求設定 `Sec-Fetch-Dest/Mode/Site/User` 與 `Upgrade-Insecure-Requests`。規則不新增 cookie、不封鎖請求，acquisition 結束後移除。實際 request 仍是 `credentials: 'omit'`；已用「預先放入 Threads cookie」的測試確認 request 沒有 `Cookie` header，cookie 也沒有被修改。
+
+### 17.3 權限模型
+
+| 類型          | 值                                                                               | 說明                                                |
+| ------------- | -------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Required API  | `activeTab`, `scripting`, `clipboardRead`, `declarativeNetRequestWithHostAccess` | 與 v0.2.0 相比新增 DNR；只做上述 navigation headers |
+| Required host | `https://www.instagram.com/*`                                                    | 與 v0.2.0 相同                                      |
+| Optional host | `https://www.threads.com/*`                                                      | 只在 Threads Resolve/Download 的使用者手勢中請求    |
+| 未要求        | `cookies`, `tabs`, `history`, `webRequest`, `storage`, `<all_urls>`              | 不得新增                                            |
+
+普通 Instagram 操作不會觸發 Threads optional permission。若使用者拒絕，popup/background 回 `PERMISSION_REQUIRED`，不會擴大權限或退回其他 host。
+
+### 17.4 已做的主動驗證
+
+- 使用 **Chrome for Testing + 全新 profile**（`Network.getAllCookies` 確認 threads/instagram cookies 為空）載入本機 extension build。為了在 headless 環境避開原生 optional-permission prompt，測試 build 將 `threads.com` 暫時列為 required host；程式碼路徑與 production 相同。
+- 匿名公開樣本（不留 ID 於文件）實際檔案落地：
+  - Threads 單圖 → JPEG，1080×1350。
+  - 混合 carousel → 3 個 ordered 檔案：MP4、JPEG、JPEG。
+  - 原生影片 → MP4，634,607 bytes。
+  - 官方 share link → 圖片 JPEG 與另一支 MP4（25,692,320 bytes）。
+  - Giphy GIF → GIF89a，360×200，47 frames，1,336,302 bytes，未被轉成 JPEG。
+- 下載後 `chrome.declarativeNetRequest.getSessionRules()` 為空，確認 header rule 已移除。
+- 有 cookie 的測試：acquisition request 無 `Cookie` header，cookie 保持原值。
+- 另以 **production optional-permission build** 確認未授權時 background 回 `{ error: 'PERMISSION_REQUIRED', platform: 'threads' }`。
+- 自動化：`pnpm test`、`pnpm lint`、`pnpm typecheck`、`pnpm build`、`pnpm format:check`、`git diff --check` 全部通過（實際數字見本次 commit 的 CI/終端輸出）。
+
+### 17.5 尚未物理驗證
+
+- **Optional permission 原生 prompt 未真人點擊**：headless 無法處理 native prompt；grant/deny 邏輯由單元測試覆蓋，production build 的「未授權即拒絕」已實測。發佈前仍需真人在 Chrome 點一次 Allow，再重跑一個 Threads 下載。
+- **Instagram 登入態 Post/Carousel/Reel/explicit-id Story 未重跑**：本環境沒有登入態 Instagram session。自動測試與既有 regression tests 通過，且 local extension 對 Instagram demo URL 仍走原路徑並回 typed error；不可宣稱 live Instagram 成功。
+- 未測未登入/登入 Threads 的「同一 public post 但上遊只給登入使用者」差異；E1 一律 `credentials: 'omit'`，因此這種貼文會 typed fail closed，這是預期行為。
+
+### 17.6 v0.3.0 發佈步驟（尚未執行）
+
+1. 在 `feat/threads-local-extension` 完成 review；必要時修正後重跑全部 gates。
+2. 合併到 `main`（或依政策先合併到 `release/instagram-stable`），**不要覆寫既有 tag/release**。
+3. 在乾淨的 `main` 或 `release/instagram-stable` 執行 `pnpm package:extension`，取得 `artifacts/unifetch-chromium-extension-v0.3.0.zip` 與 `.sha256`。
+4. 將 version、tag、fileName、downloadUrl、sha256、sizeBytes 更新到 `apps/web/src/config/extension-release.ts` 並 commit。
+5. 先 push，再執行 `node scripts/release-extension.mjs` 驗證；確認無誤後才 `--publish`。
+6. 從 GitHub 重新下載 asset，核對 SHA-256 與 size；再重新 build/deploy Pages，讓 `/extension` 指向 v0.3.0。
+7. 真人工 Chrome 檢查：optional permission Allow/Deny、Threads 圖片／carousel／影片／GIF／share、Instagram Post/Reel/explicit-id Story，以及 `/stories/<username>/` fail closed。
+
+回滾：保持 `extension-v0.2.0` release 不動；若 v0.3.0 有問題，將 `extension-release.ts` 指回 v0.2.0 asset 並重新部署 Pages，使用者重新下載 v0.2.0 ZIP 或保留舊 unpacked 資料夾。
+
+---
+
+## 18. 相關文件
 
 - `README.md` — 產品與快速開始
 - `docs/supported-content.md` — 各平台／runtime 能力矩陣

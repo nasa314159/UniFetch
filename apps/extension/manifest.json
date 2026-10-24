@@ -1,17 +1,23 @@
 {
   "manifest_version": 3,
-  "name": "UniFetch Instagram",
-  "version": "0.2.0",
-  "description": "Local authenticated Instagram Post, Carousel, Reel and explicit-id Story downloads. Media goes browser to Instagram CDN to the device; no credentials or session data are read or exported and nothing is proxied.",
+  "name": "UniFetch",
+  "version": "0.3.0",
+  "description": "Local Instagram and public Threads downloads. Instagram uses your own browser session; Threads is public-only. Media goes from the source CDN to your device; no credentials are read or exported and nothing is proxied.",
   "minimum_chrome_version": "118",
-  "permissions": ["activeTab", "scripting", "clipboardRead"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "clipboardRead",
+    "declarativeNetRequestWithHostAccess"
+  ],
   "host_permissions": ["https://www.instagram.com/*"],
+  "optional_host_permissions": ["https://www.threads.com/*"],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
   "action": {
-    "default_title": "UniFetch Instagram",
+    "default_title": "UniFetch",
     "default_popup": "popup.html"
   }
 }

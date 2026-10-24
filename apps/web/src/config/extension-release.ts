@@ -6,6 +6,11 @@
  * set `downloadUrl`, `sha256` and `sizeBytes` to null; the install page then
  * shows an accurate "release not yet available" state instead of a dead link.
  *
+ * The checked-in value below is the published v0.2.0 asset. The extension
+ * source may carry a newer unreleased candidate (for example v0.3.0 with local
+ * Threads support); do not update this configuration until that release asset
+ * exists and its checksum has been verified.
+ *
  * The build/packaging tests keep this file consistent with
  * apps/extension/manifest.json and the GitHub Release asset name.
  */

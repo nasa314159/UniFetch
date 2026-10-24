@@ -39,7 +39,7 @@ The existing M4A parser/normalizer selects direct media candidates and preserves
 
 API output includes Cache-Control: no-store, Pragma: no-cache and explicit configurable CORS without Access-Control-Allow-Credentials. There are no media routes, caches, bindings, persistence or background processing. Wrangler builds locally with a dry run; deployment is separate.
 
-## Extension (authenticated, local)
+## Extension (local, dual-platform)
 
 `apps/extension` is a Chromium MV3 extension that is built separately, packaged deterministically into a versioned GitHub Releases ZIP and loaded unpacked by users. It is not part of the Pages deployment. Its service worker and popup are bundled with esbuild; no server component is added.
 
@@ -48,15 +48,22 @@ Flow:
 ```text
 popup → one manual URL or active tab → background service worker
       → Instagram (credentials: include, no Cookie header constructed)
-      → existing parser/normalizer → in-memory MediaAsset list
+      → existing Instagram parser/normalizer → in-memory MediaAsset list
+      → Threads local adapter (credentials: omit, official origin only)
+      → existing Threads parser/share validator/GIF fallback/normalizer
       → browser-native download (media bytes source CDN → device)
 ```
 
+- **Platform routing:** `target.ts` parses Instagram Post/Reel/Story and Threads canonical post/share shapes independently. Unsupported Threads paths never fall through to Instagram, and Instagram dispatch keeps its existing strategies and ordering.
 - **Post/Carousel/Reel:** attempts background fetch, isolated content script and MAIN world in order. The first successful parse wins. `resolveStrategyOutcome` returns sanitized diagnostics plus in-memory assets.
 - **Story:** `story/ref.ts` accepts only an explicit media id; `story/route.ts` also recognizes a username-only URL solely to reject it with `UNSUPPORTED_CONTENT`. No page-state, DOM, fiber, history or visible-media inspection exists in the stable release.
 - **Identity invariant:** `matchOwner(routeUsername, responseOwner)` must not be `false`. A `false` result is `mismatch` and returns no asset. An absent response owner is `unknown` and does not itself reject an explicit-id URL; the explicit id remains authoritative.
+- **Threads adapter:** `threads/acquisition.ts` fetches only constructed `https://www.threads.com` post, embed and share URLs with `credentials: 'omit'`, no-store, no referrer and a 10-second timeout. HTML is bounded to 4 MiB. Canonical-post and share destinations are checked against the exact publisher/shortcode; a share redirect is followed by the browser and only its single final canonical URL is accepted. `header-rule.ts` installs a host-scoped `declarativeNetRequestWithHostAccess` session rule for the navigation headers Threads requires, then removes it. It adds no cookies and does not affect Instagram.
+- **Threads identity/reuse:** `resolveThreadsTarget` calls the existing `resolveThreadsInput`, so exact-post parsing, private/unavailable classification, official share-location validation, Giphy embed fallback and media normalization are not duplicated. GIF assets keep `image/gif` and original animated bytes.
 - **Download UX:** `download-flow.ts` reuses matching in-memory results for one target fingerprint or resolves then downloads. `createSingleFlight` blocks duplicate concurrent downloads. Nothing is persisted.
 - **Protocol handshake:** popup and background share `EXTENSION_PROTOCOL_VERSION`; controls stay disabled on mismatch so a stale service worker cannot receive new requests.
+
+Permissions are deliberately split: `activeTab`, `scripting`, `clipboardRead` and `declarativeNetRequestWithHostAccess` are required; `https://www.instagram.com/*` remains a required host permission; `https://www.threads.com/*` is an optional host permission requested only from a Threads Resolve/Download action. No `cookies`, `tabs`, `history`, `webRequest`, `storage` or `<all_urls>` permission is requested.
 
 The research-only modules (`story/current-id.ts`, `story/visible-media.ts`, `story/identity-sources.ts`, `story/diagnostic.ts` and their tests) remain on `research/m8b-m8d-instagram-story` and are intentionally absent from the stable branch.
 
@@ -75,3 +82,5 @@ M4C direct WebRuntime probes for public Image, Carousel and Reel each returned B
 The manifest uses standalone display and a GET `/share` target. Service-worker precaching includes only shell HTML, JS, CSS and icons. Demo media is excluded, runtime caching is empty, and share/demo navigation fallback is denied. Fixed fictional demo metadata is compiled into JS. No resolved URL, metadata or media is intentionally cached. Hosting and browser caches are separate operator/browser responsibilities.
 
 M5–M5.5 local validation established successful metadata resolution for the tested public Instagram image post, carousel and Reel, direct image preview, direct image Blob download and Open original. T1B added a separate public Threads resolver path and live-validated image, image carousel, native video, video-carousel child and GIF posts through local `workerd` and a `wrangler dev --remote` Cloudflare edge session. Browser downloads produced JPEG images, four ordered carousel JPEGs, MP4 and a 26-frame animated GIF; media bytes remained direct from the CDN. The Cloudflare Resolver is the current Web/PWA compatibility runtime for metadata; media is fetched directly by the user’s browser/device. These tests do not establish support for all public content. No public identifiers or raw response payloads were retained in source, fixtures or documentation.
+
+E1 adds local Threads acquisition to the unpacked extension without changing the Web/PWA path. It uses `credentials: 'omit'` for every Threads metadata request and a temporary host-scoped navigation-header rule, then reuses the same Threads parser/share/GIF/normalizer. A fresh profile with no Threads cookies produced verified files for image, mixed carousel, native MP4, official share links and a 47-frame GIF. The v0.3.0 candidate is unpublished; v0.2.0 remains the release baseline.

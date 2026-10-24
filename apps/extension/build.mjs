@@ -36,5 +36,5 @@ await cp(path.join(dir, 'manifest.json'), path.join(outdir, 'manifest.json'));
 await cp(path.join(dir, 'popup.html'), path.join(outdir, 'popup.html'));
 
 process.stdout.write(
-  `UniFetch Instagram extension built to ${path.relative(process.cwd(), outdir)}\n`,
+  `UniFetch extension built to ${path.relative(process.cwd(), outdir)}\n`,
 );

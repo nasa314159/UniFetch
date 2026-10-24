@@ -8,14 +8,19 @@ import type { MediaAsset } from '@unifetch/core';
  */
 export type ExtensionContentType = 'post' | 'carousel' | 'reel' | 'story';
 
+export type ResolvePlatform = 'instagram' | 'threads';
+
 export type ResolveErrorCode =
   | 'INVALID_URL'
   | 'UNSUPPORTED_CONTENT'
+  | 'CONTENT_UNAVAILABLE'
   | 'LOGIN_REQUIRED'
   | 'GRAPHQL_EXECUTION_ERROR'
   | 'PARSER_OUTDATED'
+  | 'RATE_LIMITED'
   | 'NETWORK_ERROR'
   | 'BROWSER_RESTRICTION'
+  | 'PERMISSION_REQUIRED'
   | 'HTTP_ERROR'
   | 'DOWNLOAD_FAILED'
   | 'UNKNOWN';
@@ -23,6 +28,8 @@ export type ResolveErrorCode =
 export interface ExtensionResolveSuccess {
   ok: true;
   contentType: ExtensionContentType;
+  /** Present for Threads; Instagram responses keep their existing wording. */
+  platform?: ResolvePlatform;
   /** In-memory only; never persisted and never displayed as a URL. */
   assets: MediaAsset[];
 }
@@ -32,6 +39,7 @@ export interface ExtensionResolveFailure {
   error: ResolveErrorCode;
   /** Present when the content type was known before the failure. */
   contentType?: ExtensionContentType;
+  platform?: ResolvePlatform;
 }
 
 export type ExtensionResolveResponse =
@@ -47,15 +55,20 @@ const contentTypes: readonly ExtensionContentType[] = [
 const resolveErrors: readonly ResolveErrorCode[] = [
   'INVALID_URL',
   'UNSUPPORTED_CONTENT',
+  'CONTENT_UNAVAILABLE',
   'LOGIN_REQUIRED',
   'GRAPHQL_EXECUTION_ERROR',
   'PARSER_OUTDATED',
+  'RATE_LIMITED',
   'NETWORK_ERROR',
   'BROWSER_RESTRICTION',
+  'PERMISSION_REQUIRED',
   'HTTP_ERROR',
   'DOWNLOAD_FAILED',
   'UNKNOWN',
 ];
+
+const platforms: readonly ResolvePlatform[] = ['instagram', 'threads'];
 
 export function contentTypeLabel(
   contentType: ExtensionContentType | undefined,
@@ -88,7 +101,10 @@ function isSuccess(value: unknown): value is ExtensionResolveSuccess {
     candidate.ok === true &&
     typeof candidate.contentType === 'string' &&
     (contentTypes as readonly string[]).includes(candidate.contentType) &&
-    Array.isArray(candidate.assets)
+    Array.isArray(candidate.assets) &&
+    (candidate.platform === undefined ||
+      (typeof candidate.platform === 'string' &&
+        (platforms as readonly string[]).includes(candidate.platform)))
   );
 }
 
@@ -98,7 +114,10 @@ function isFailure(value: unknown): value is ExtensionResolveFailure {
   return (
     candidate.ok === false &&
     typeof candidate.error === 'string' &&
-    (resolveErrors as readonly string[]).includes(candidate.error)
+    (resolveErrors as readonly string[]).includes(candidate.error) &&
+    (candidate.platform === undefined ||
+      (typeof candidate.platform === 'string' &&
+        (platforms as readonly string[]).includes(candidate.platform)))
   );
 }
 
@@ -108,19 +127,24 @@ export interface ResolveUiState {
   downloadEnabled: boolean;
   message: string;
   contentType?: ExtensionContentType;
+  platform?: ResolvePlatform;
 }
 
-function assetTypes(assets: readonly MediaAsset[]): ('image' | 'video')[] {
-  return Array.from(
-    new Set(
-      assets
-        .map((asset) => asset.type)
-        .filter(
-          (type): type is 'image' | 'video' =>
-            type === 'image' || type === 'video',
-        ),
-    ),
-  );
+function assetSummary(assets: readonly MediaAsset[]): string[] {
+  const types = new Set<string>();
+  for (const asset of assets) {
+    if (
+      asset.type === 'image' &&
+      (asset.mimeType ?? '').toLowerCase() === 'image/gif'
+    )
+      types.add('gif');
+    else types.add(asset.type);
+  }
+  return [...types];
+}
+
+function platformPrefix(platform: ResolvePlatform | undefined): string {
+  return platform === 'threads' ? 'Threads ' : '';
 }
 
 /**
@@ -138,14 +162,19 @@ export function applyResolveResponse(
       return {
         assets: [],
         downloadEnabled: false,
-        message: `${contentTypeLabel(response.contentType)} failed · UNKNOWN`,
+        message: `${platformPrefix(
+          response.platform,
+        )}${contentTypeLabel(response.contentType)} failed · UNKNOWN`,
       };
-    const types = assetTypes(assets);
+    const types = assetSummary(assets);
     return {
       assets,
       downloadEnabled: true,
       contentType: response.contentType,
-      message: `${contentTypeLabel(response.contentType)} resolved · ${
+      ...(response.platform ? { platform: response.platform } : {}),
+      message: `${platformPrefix(
+        response.platform,
+      )}${contentTypeLabel(response.contentType)} resolved · ${
         assets.length
       } asset(s)${types.length ? ` · ${types.join('/')}` : ''}`,
     };
@@ -160,7 +189,12 @@ export function applyResolveResponse(
   return {
     assets: [],
     downloadEnabled: false,
-    message: `${label} failed · ${error}`,
+    ...(isFailure(response) && response.platform
+      ? { platform: response.platform }
+      : {}),
+    message: `${platformPrefix(
+      isFailure(response) ? response.platform : undefined,
+    )}${label} failed · ${error}`,
   };
 }
 
@@ -196,8 +230,9 @@ export async function runAssetDownloads(
 export function describeDownload(
   contentType: ExtensionContentType | undefined,
   summary: AssetDownloadSummary,
+  platform?: ResolvePlatform,
 ): string {
-  const label = contentTypeLabel(contentType);
+  const label = `${platformPrefix(platform)}${contentTypeLabel(contentType)}`;
   if (summary.requested === 0)
     return `${label} not downloaded · DOWNLOAD_FAILED`;
   if (summary.failed === 0)

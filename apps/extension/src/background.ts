@@ -28,7 +28,11 @@ import {
 import type { StoryFeasibilityResult } from './story/contracts';
 import { buildInstagramStoryRequest } from './story/request';
 import { routeStoryUrls } from './story/route';
-import { firstInstagramTarget } from './target';
+import { firstExtensionTarget, type ThreadsTarget } from './target';
+import { createThreadsAcquisition } from './threads/acquisition';
+import { createChromeThreadsHeaderRule } from './threads/header-rule';
+import { hasThreadsPermission } from './threads/permission';
+import { resolveThreadsTarget } from './threads/resolve';
 
 interface RunFailure {
   ok: false;
@@ -284,6 +288,39 @@ function contentResolveResponse(
 }
 
 /**
+ * Public Threads resolution. The optional host permission is checked in the
+ * background as well as requested by the popup from an explicit user gesture.
+ * No Instagram transport or session is touched.
+ */
+async function resolveThreadsRequest(
+  target: ThreadsTarget,
+): Promise<ExtensionResolveResponse> {
+  if (!(await hasThreadsPermission(chrome.permissions)))
+    return {
+      ok: false,
+      platform: 'threads',
+      contentType: 'post',
+      error: 'PERMISSION_REQUIRED',
+    };
+  try {
+    const acquisition = createThreadsAcquisition({
+      headerRule: createChromeThreadsHeaderRule(),
+    });
+    return await resolveThreadsTarget(target, acquisition);
+  } catch (error) {
+    return {
+      ok: false,
+      platform: 'threads',
+      contentType: 'post',
+      error:
+        error instanceof Error && /permission/i.test(error.message)
+          ? 'PERMISSION_REQUIRED'
+          : 'UNKNOWN',
+    };
+  }
+}
+
+/**
  * Single resolve entry point for a manual or tab URL. Dispatches Post/Reel to
  * the local authenticated content resolver and an explicit-id Story to the
  * Story resolver, always returning ONE unified response shape. Everything stays
@@ -302,13 +339,14 @@ async function resolveRequest(
     if (location) inputs.push(location);
     if (tabUrl) inputs.push(tabUrl);
   }
-  let target = firstInstagramTarget(inputs);
+  let target = firstExtensionTarget(inputs);
   if (!target && !manual) {
     const links = await readPageLinks(tabId);
     inputs.push(links.canonical, links.og);
-    target = firstInstagramTarget([links.canonical, links.og]);
+    target = firstExtensionTarget([links.canonical, links.og]);
   }
   if (!target) return { ok: false, error: classifyTargetFailure(inputs) };
+  if (target.platform === 'threads') return resolveThreadsRequest(target);
   if (target.kind === 'post' || target.kind === 'reel')
     return contentResolveResponse(
       target.kind,

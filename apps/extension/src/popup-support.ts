@@ -1,20 +1,50 @@
-import { parseInstagramTarget } from './target';
+import { parseExtensionTarget, parseInstagramTarget } from './target';
 
 /**
- * M8C/M8D popup support. Pure, DOM-free helpers for the manual URL input and
+ * M8C/M8D/E1 popup support. Pure, DOM-free helpers for the manual URL input and
  * the explicit-click clipboard paste. No value is persisted or logged.
  */
-export type ManualContentKind = 'post' | 'reel' | 'story' | 'story-profile';
+export type ManualContentKind =
+  'post' | 'reel' | 'story' | 'story-profile' | 'share';
 
+export interface ManualTarget {
+  platform: 'instagram' | 'threads';
+  kind: ManualContentKind;
+  canonicalUrl: string;
+}
+
+/** @deprecated Instagram-only shape kept for the existing Instagram tests. */
 export interface ManualInstagramTarget {
   kind: ManualContentKind;
   canonicalUrl: string;
 }
 
+function parseManual(input: string | undefined): ManualTarget | undefined {
+  const value = typeof input === 'string' ? input.trim() : '';
+  if (!value) return undefined;
+  const target = parseExtensionTarget(value);
+  if (!target) return undefined;
+  return {
+    platform: target.platform,
+    kind: target.kind,
+    canonicalUrl: target.canonicalUrl,
+  };
+}
+
 /**
- * Validates a manually typed/pasted URL with the existing UniFetch Instagram
- * parsers (Post/Reel via the shared content-ref parser, Story via the Story
- * ref parsers). Returns undefined for anything unsupported.
+ * Validates a manually typed/pasted URL with the shared UniFetch parsers.
+ * Instagram Post/Reel/Story and Threads post/share shapes are accepted;
+ * anything else is rejected before any request.
+ */
+export function parseManualUrl(
+  input: string | undefined,
+): ManualTarget | undefined {
+  return parseManual(input);
+}
+
+/**
+ * Instagram-only manual parser retained for existing callers/tests. It never
+ * changes the Instagram acceptance rules.
  */
 export function parseManualInstagramUrl(
   input: string | undefined,

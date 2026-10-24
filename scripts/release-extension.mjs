@@ -149,6 +149,8 @@ const notes = [
   '',
   'Supports authenticated Instagram Posts, Carousels, Reels and Stories only when the URL contains an explicit Story ID. Username-only Stories, Highlights and Story enumeration are not supported and fail closed.',
   '',
+  'Also supports public-only Threads posts: static images, image carousels, native MP4 video, mixed carousels, tested Giphy GIFs and official /share/ links. Threads requests are sent with credentials omitted and never use your logged-in Threads session. A separate optional threads.com host permission is requested only when you use a Threads link; Instagram does not trigger it.',
+  '',
   'The extension uses the Instagram session already present in your browser; it does not read or export cookies, does not use a UniFetch media proxy and sends no telemetry. It does not grant access to content you cannot already view.',
   '',
   'Verify the downloaded ZIP against the SHA-256 above before loading it.',

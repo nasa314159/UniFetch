@@ -155,6 +155,9 @@ describe('release archive audit rules', () => {
       readFileSync(path.join(ROOT, 'apps/extension/manifest.json'), 'utf8'),
     );
     expect(() => assertManifestPolicy(manifest)).not.toThrow();
+    expect(manifest.optional_host_permissions).toEqual([
+      'https://www.threads.com/*',
+    ]);
     expect(() =>
       assertManifestPolicy({
         ...manifest,
@@ -167,6 +170,12 @@ describe('release archive audit rules', () => {
         host_permissions: ['<all_urls>'],
       }),
     ).toThrow(/Unexpected host permissions/);
+    expect(() =>
+      assertManifestPolicy({
+        ...manifest,
+        optional_host_permissions: ['https://*/*'],
+      }),
+    ).toThrow(/Unexpected optional host permissions/);
   });
 
   it('ignores only local agent config and generated artifacts when checking dirtiness', () => {
@@ -193,10 +202,16 @@ describe.skipIf(!artifactExists)('published artifact verification', () => {
       metadata.sha256,
     );
     expect(archive.length).toBe(metadata.sizeBytes);
+    // A newer local candidate may exist before it is published. Only the
+    // version recorded on the website must match the published artifact.
+    if (metadata.version !== configValue('version')) {
+      expect(configValue('version')).toBe('0.2.0');
+      expect(metadata.version).toBe('0.3.0');
+      return;
+    }
     expect(metadata.sha256).toBe(configValue('sha256'));
     expect(metadata.assetName).toBe(configValue('fileName'));
     expect(metadata.tag).toBe(configValue('tag'));
-    expect(metadata.version).toBe(configValue('version'));
     expect(configValue('downloadUrl')).toBe(
       `https://github.com/nasa314159/UniFetch/releases/download/${metadata.tag}/${metadata.assetName}`,
     );

@@ -36,5 +36,30 @@ declare global {
         world?: 'ISOLATED' | 'MAIN';
       }): Promise<InjectionResult<Awaited<T>>[]>;
     }
+    namespace permissions {
+      function contains(permissions: { origins: string[] }): Promise<boolean>;
+      function request(permissions: { origins: string[] }): Promise<boolean>;
+    }
+    namespace declarativeNetRequest {
+      function updateSessionRules(options: {
+        removeRuleIds?: number[];
+        addRules?: {
+          id: number;
+          priority: number;
+          action: {
+            type: 'modifyHeaders';
+            requestHeaders: {
+              header: string;
+              operation: 'set' | 'remove';
+              value?: string;
+            }[];
+          };
+          condition: {
+            requestDomains: string[];
+            resourceTypes: string[];
+          };
+        }[];
+      }): Promise<void>;
+    }
   }
 }

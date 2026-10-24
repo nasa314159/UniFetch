@@ -6,8 +6,9 @@ import {
 } from './download-flow';
 import {
   isManualTarget,
-  parseManualInstagramUrl,
+  parseManualUrl,
   readClipboardText,
+  type ManualTarget,
 } from './popup-support';
 import {
   applyResolveResponse,
@@ -24,6 +25,8 @@ import {
   type RuntimeCompatibility,
   type RuntimeInfo,
 } from './runtime-info';
+import { parseExtensionTarget } from './target';
+import { ensureThreadsPermission } from './threads/permission';
 
 const resolveButton = document.querySelector<HTMLButtonElement>('#resolve');
 const downloadButton = document.querySelector<HTMLButtonElement>('#download');
@@ -86,18 +89,22 @@ async function activeTabId(): Promise<
 
 /** The validated manual target, or a sanitized rejection, or undefined. */
 function manualTarget():
-  { ok: true; url: string } | { ok: false; error: string } | undefined {
+  | { ok: true; target: ManualTarget }
+  | { ok: false; error: string }
+  | undefined {
   const value = urlInput?.value.trim();
   if (!value) return undefined;
-  const parsed = parseManualInstagramUrl(value);
-  if (!parsed) return { ok: false, error: 'Not a supported Instagram URL.' };
-  return { ok: true, url: parsed.canonicalUrl };
+  const parsed = parseManualUrl(value);
+  if (!parsed)
+    return { ok: false, error: 'Not a supported Instagram or Threads URL.' };
+  return { ok: true, target: parsed };
 }
 
 interface ActionTarget {
   id: number;
   url?: string;
   manual: boolean;
+  platform?: 'instagram' | 'threads';
   /** In-memory identity of the current manual URL or active-tab target. */
   fingerprint: string;
 }
@@ -110,11 +117,17 @@ async function resolveActionTarget(): Promise<
   const tab = await activeTabId();
   if (!tab) return { error: 'No active tab.' };
   const manual = Boolean(target?.ok) && isManualTarget(urlInput?.value);
-  const url = target?.ok ? target.url : tab.url;
+  const url = target?.ok ? target.target.canonicalUrl : tab.url;
+  const parsed = target?.ok
+    ? target.target
+    : url
+      ? parseExtensionTarget(url)
+      : undefined;
   return {
     id: tab.id,
     url,
     manual,
+    ...(parsed?.platform ? { platform: parsed.platform } : {}),
     fingerprint: manual ? `manual:${url ?? ''}` : `tab:${tab.id}:${url ?? ''}`,
   };
 }
@@ -122,11 +135,43 @@ async function resolveActionTarget(): Promise<
 /** Content label used only when a failure response has no contentType. */
 function activeTargetLabel(): string {
   const value = urlInput?.value.trim();
-  const parsed = value ? parseManualInstagramUrl(value) : undefined;
+  const parsed = value ? parseManualUrl(value) : undefined;
   if (!parsed) return 'Item';
-  return contentTypeLabel(
-    parsed.kind === 'story-profile' ? 'story' : parsed.kind,
-  );
+  if (parsed.kind === 'share' || parsed.kind === 'post') return 'Post';
+  if (parsed.kind === 'story' || parsed.kind === 'story-profile')
+    return 'Story';
+  return contentTypeLabel(parsed.kind);
+}
+
+/**
+ * Starts the optional Threads permission request during the click's user
+ * gesture when the manual URL is already known to be Threads. Active-tab
+ * detection needs one short tabs.query, after which the caller reuses or
+ * requests the same narrow origin.
+ */
+function earlyThreadsPermission():
+  | Promise<{
+      granted: boolean;
+      requested: boolean;
+    }>
+  | undefined {
+  const value = urlInput?.value.trim();
+  const parsed = value ? parseManualUrl(value) : undefined;
+  return parsed?.platform === 'threads'
+    ? ensureThreadsPermission(chrome.permissions)
+    : undefined;
+}
+
+/** Returns false only when a Threads target lacks its optional host grant. */
+async function authorizeThreads(
+  target: ActionTarget,
+  early: ReturnType<typeof earlyThreadsPermission>,
+): Promise<boolean> {
+  if (target.platform !== 'threads') return true;
+  const result = early
+    ? await early
+    : await ensureThreadsPermission(chrome.permissions);
+  return result.granted;
 }
 
 // A changed manual input invalidates any cached assets for the old target.
@@ -166,10 +211,23 @@ resolveButton?.addEventListener('click', async () => {
   list.replaceChildren();
   status.textContent = 'Resolving locally…';
   const fallbackLabel = activeTargetLabel();
+  const earlyPermission = earlyThreadsPermission();
   try {
     const target = await resolveActionTarget();
     if ('error' in target) {
       status.textContent = `Rejected: ${target.error}`;
+      return;
+    }
+    if (!(await authorizeThreads(target, earlyPermission))) {
+      status.textContent = applyResolveResponse(
+        {
+          ok: false,
+          platform: 'threads',
+          contentType: 'post',
+          error: 'PERMISSION_REQUIRED',
+        },
+        fallbackLabel,
+      ).message;
       return;
     }
     const response = (await chrome.runtime.sendMessage({
@@ -184,6 +242,7 @@ resolveButton?.addEventListener('click', async () => {
         ? {
             fingerprint: target.fingerprint,
             contentType: next.contentType,
+            ...(next.platform ? { platform: next.platform } : {}),
             assets: next.assets,
           }
         : undefined;
@@ -210,10 +269,23 @@ downloadButton?.addEventListener('click', () => {
     }
     downloadButton.disabled = true;
     status.textContent = 'Resolving…';
+    const earlyPermission = earlyThreadsPermission();
     try {
       const target = await resolveActionTarget();
       if ('error' in target) {
         status.textContent = `Rejected: ${target.error}`;
+        return;
+      }
+      if (!(await authorizeThreads(target, earlyPermission))) {
+        status.textContent = applyResolveResponse(
+          {
+            ok: false,
+            platform: 'threads',
+            contentType: 'post',
+            error: 'PERMISSION_REQUIRED',
+          },
+          activeTargetLabel(),
+        ).message;
         return;
       }
       const outcome = await downloadAllCurrentTarget({

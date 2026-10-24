@@ -4,6 +4,7 @@ import {
   describeDownload,
   type AssetDownloadSummary,
   type ExtensionContentType,
+  type ResolvePlatform,
 } from './resolve';
 
 /**
@@ -16,6 +17,7 @@ import {
 export interface ResolvedCache {
   fingerprint: string;
   contentType: ExtensionContentType;
+  platform?: ResolvePlatform;
   assets: MediaAsset[];
 }
 
@@ -67,6 +69,7 @@ export async function downloadAllCurrentTarget(
     active = {
       fingerprint,
       contentType: next.contentType,
+      ...(next.platform ? { platform: next.platform } : {}),
       assets: next.assets,
     };
   }
@@ -78,7 +81,7 @@ export async function downloadAllCurrentTarget(
   }
   return {
     cache: active,
-    message: describeDownload(active.contentType, summary),
+    message: describeDownload(active.contentType, summary, active.platform),
     downloaded: summary.requested > 0,
   };
 }

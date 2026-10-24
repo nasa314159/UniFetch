@@ -83,8 +83,14 @@ export const SECRET_PATTERNS = [
   /\bopencode\.jsonc\b/,
 ];
 
-const PERMISSION_ALLOWLIST = ['activeTab', 'clipboardRead', 'scripting'];
+const PERMISSION_ALLOWLIST = [
+  'activeTab',
+  'clipboardRead',
+  'declarativeNetRequestWithHostAccess',
+  'scripting',
+];
 const HOST_ALLOWLIST = ['https://www.instagram.com/*'];
+const OPTIONAL_HOST_ALLOWLIST = ['https://www.threads.com/*'];
 
 /* ------------------------------------------------------------------ ZIP --- */
 
@@ -344,6 +350,14 @@ export function assertManifestPolicy(manifest) {
   const hosts = [...(manifest.host_permissions ?? [])].sort();
   if (JSON.stringify(hosts) !== JSON.stringify(HOST_ALLOWLIST)) {
     throw new Error(`Unexpected host permissions: ${JSON.stringify(hosts)}`);
+  }
+  const optionalHosts = [...(manifest.optional_host_permissions ?? [])].sort();
+  if (
+    JSON.stringify(optionalHosts) !== JSON.stringify(OPTIONAL_HOST_ALLOWLIST)
+  ) {
+    throw new Error(
+      `Unexpected optional host permissions: ${JSON.stringify(optionalHosts)}`,
+    );
   }
   const serialized = JSON.stringify(manifest);
   for (const token of [
