@@ -654,7 +654,7 @@ T1D 追加座標（Threads 分享連結）：
 - Instagram 正式 live metadata 在 T1C 初次檢查時曾回 `LOGIN_REQUIRED`，事故修復後重新檢查同類公開 carousel 已成功；上游可用性仍會變動，遇到 `LOGIN_REQUIRED` 屬於來源限制，不是 CORS/schema 錯誤。
 - 未在真實 Chrome 重新執行 extension「Load unpacked → Instagram 登入 → 下載」流程；extension 本次未變更。
 - GIF 僅支援已測 Giphy attachment；embed 可能只提供 200px 高度變體，且未驗證 animated WebP 或其他 GIF provider。
-- 未支援 `/t/` 短連結、`/share/` 連結、profiles、search、replies、quoted/reposted substitution、private/login、audio-only、HLS/DASH-only video。
+- 未支援 `/t/` 短連結、非 post 的 `/share/` 路徑、profiles、search、replies、quoted/reposted substitution、private/login、audio-only、HLS/DASH-only video。官方 `/share/<token>/` 已在 T1D 支援。
 - Threads SSR/Relay 與 GIF embed 都是平台內部格式；未來變動時應 fail closed，不要加猜測 fallback。
 - 大型 native video（>5 MiB）在此瀏覽器自動化環境下載擷取失敗，但同一來源的 1.37 MiB MP4 下載成功；較大影片的實體下載仍應由真人裝置補測。
 
