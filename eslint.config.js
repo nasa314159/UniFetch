@@ -8,6 +8,8 @@ export default ts.config(
       '**/node_modules/**',
       '**/dev-dist/**',
       '**/.wrangler/**',
+      'artifacts/**',
+      'coverage/**',
     ],
   },
   js.configs.recommended,

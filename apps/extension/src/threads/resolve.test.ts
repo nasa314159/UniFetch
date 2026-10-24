@@ -70,7 +70,7 @@ describe('Threads extension resolution (shared parser and normalizer)', () => {
     expect(result.assets).toHaveLength(1);
     expect(result.assets[0]).toMatchObject({
       type: 'image',
-      suggestedFilename: `threads_${imageCode}.jpg`,
+      suggestedFilename: `threads_${threadsUsername}_${imageCode}.jpg`,
     });
     expect(result.assets[0].url).toContain('synthetic-image-high.jpg');
   });
@@ -89,7 +89,7 @@ describe('Threads extension resolution (shared parser and normalizer)', () => {
     expect(result.assets[0]).toMatchObject({
       type: 'video',
       mimeType: 'video/mp4',
-      suggestedFilename: `threads_${videoCode}.mp4`,
+      suggestedFilename: `threads_${threadsUsername}_${videoCode}.mp4`,
     });
     expect(result.assets[0].url).toContain('synthetic-video-101.mp4');
   });
@@ -114,10 +114,10 @@ describe('Threads extension resolution (shared parser and normalizer)', () => {
       'video',
     ]);
     expect(result.assets.map((asset) => asset.suggestedFilename)).toEqual([
-      `threads_${carouselCode}_01.jpg`,
-      `threads_${carouselCode}_02.mp4`,
-      `threads_${carouselCode}_03.jpg`,
-      `threads_${carouselCode}_04.mp4`,
+      `threads_${threadsUsername}_${carouselCode}_01.jpg`,
+      `threads_${threadsUsername}_${carouselCode}_02.mp4`,
+      `threads_${threadsUsername}_${carouselCode}_03.jpg`,
+      `threads_${threadsUsername}_${carouselCode}_04.mp4`,
     ]);
     expect(carousel.carousel_media).toHaveLength(4);
   });
@@ -139,7 +139,7 @@ describe('Threads extension resolution (shared parser and normalizer)', () => {
     expect(result.assets[0]).toMatchObject({
       type: 'image',
       mimeType: 'image/gif',
-      suggestedFilename: `threads_${gifCode}.gif`,
+      suggestedFilename: `threads_${threadsUsername}_${gifCode}.gif`,
       url: 'https://media.giphy.com/media/synthetic/200.gif',
     });
     expect(gif.media_type).toBe(19);

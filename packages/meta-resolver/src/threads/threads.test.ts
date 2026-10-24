@@ -220,7 +220,8 @@ describe('Threads SSR parsing', () => {
       url: 'https://scontent.cdninstagram.com/v/t51/synthetic-image-high.jpg',
       width: 1600,
       height: 1200,
-      suggestedFilename: 'threads_synthetic-threads-image.jpg',
+      suggestedFilename:
+        'threads_unifetch_threads_demo_synthetic-threads-image.jpg',
     });
   });
 
@@ -236,6 +237,8 @@ describe('Threads SSR parsing', () => {
       height: 1350,
       thumbnailUrl:
         'https://scontent.cdninstagram.com/v/t51/synthetic-video-poster.jpg',
+      suggestedFilename:
+        'threads_unifetch_threads_demo_synthetic-threads-video.mp4',
     });
     expect(JSON.stringify(result)).not.toContain('og:image');
   });
@@ -254,11 +257,66 @@ describe('Threads SSR parsing', () => {
       'video',
     ]);
     expect(result.post.assets.map((asset) => asset.suggestedFilename)).toEqual([
-      'threads_synthetic-threads-carousel_01.jpg',
-      'threads_synthetic-threads-carousel_02.mp4',
-      'threads_synthetic-threads-carousel_03.jpg',
-      'threads_synthetic-threads-carousel_04.mp4',
+      'threads_unifetch_threads_demo_synthetic-threads-carousel_01.jpg',
+      'threads_unifetch_threads_demo_synthetic-threads-carousel_02.mp4',
+      'threads_unifetch_threads_demo_synthetic-threads-carousel_03.jpg',
+      'threads_unifetch_threads_demo_synthetic-threads-carousel_04.mp4',
     ]);
+  });
+
+  it('preserves a video-first mixed carousel shape', () => {
+    const mixed = structuredClone(carousel);
+    mixed.carousel_media = [
+      mixed.carousel_media[1],
+      mixed.carousel_media[0],
+      mixed.carousel_media[3],
+    ];
+    const parsed = parseThreadsSsrHtml(ssr(mixed), ref(carouselCode));
+    const result = normalizeThreadsMedia(
+      parsed,
+      ref(carouselCode).canonicalUrl,
+    );
+    expect(result.post.assets.map((asset) => asset.type)).toEqual([
+      'video',
+      'image',
+      'video',
+    ]);
+    expect(result.post.assets.map((asset) => asset.suggestedFilename)).toEqual([
+      'threads_unifetch_threads_demo_synthetic-threads-carousel_01.mp4',
+      'threads_unifetch_threads_demo_synthetic-threads-carousel_02.jpg',
+      'threads_unifetch_threads_demo_synthetic-threads-carousel_03.mp4',
+    ]);
+  });
+
+  it('parses against the final publisher after a same-shortcode account redirect', async () => {
+    const renamed = structuredClone(image);
+    renamed.user.username = 'unifetch_threads_renamed';
+    const adapter = acquisition(ssr(renamed));
+    adapter.acquirePost.mockResolvedValueOnce({
+      html: ssr(renamed),
+      network: [{ origin: 'https://www.threads.com', purpose: 'metadata' }],
+      ref: ref(imageCode, 'unifetch_threads_renamed'),
+    });
+    const result = await resolveThreadsPost(ref(imageCode), adapter);
+    expect(result.post.author?.username).toBe('unifetch_threads_renamed');
+    expect(result.post.canonicalUrl).toBe(
+      'https://www.threads.com/@unifetch_threads_renamed/post/synthetic-threads-image/',
+    );
+    expect(result.post.assets[0].suggestedFilename).toBe(
+      'threads_unifetch_threads_renamed_synthetic-threads-image.jpg',
+    );
+  });
+
+  it('rejects a redirect whose SSR publisher still differs from the final URL', async () => {
+    const adapter = acquisition(ssr(image));
+    adapter.acquirePost.mockResolvedValueOnce({
+      html: ssr(image),
+      network: [{ origin: 'https://www.threads.com', purpose: 'metadata' }],
+      ref: ref(imageCode, 'some_other_publisher'),
+    });
+    await expect(
+      resolveThreadsPost(ref(imageCode), adapter),
+    ).rejects.toMatchObject({ code: 'UNSUPPORTED_CONTENT' });
   });
 
   it('rejects a response owned by a different publisher', () => {
@@ -386,7 +444,8 @@ describe('Threads GIF fallback', () => {
       type: 'image',
       mimeType: 'image/gif',
       url: 'https://media.giphy.com/media/synthetic/200.gif',
-      suggestedFilename: 'threads_synthetic-threads-gif.gif',
+      suggestedFilename:
+        'threads_unifetch_threads_demo_synthetic-threads-gif.gif',
     });
   });
 

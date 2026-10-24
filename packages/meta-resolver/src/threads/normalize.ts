@@ -30,8 +30,20 @@ function assetDimensions(
   };
 }
 
+function threadsFilename(
+  username: string,
+  shortcode: string,
+  suffix: string,
+  extension: 'jpg' | 'mp4' | 'gif',
+): string {
+  // Platform + author + stable post identity + ordered index. No caption or
+  // arbitrary page text is used; both components come from validated refs.
+  return `threads_${username}_${shortcode}${suffix}.${extension}`;
+}
+
 function normalizeAsset(
   item: ThreadsResolvedAsset,
+  username: string,
   shortcode: string,
   index: number,
   numbered: boolean,
@@ -49,7 +61,7 @@ function normalizeAsset(
       ...assetDimensions(item, candidate.width, candidate.height),
       thumbnailUrl:
         bestThreadsCandidate(item.imageCandidates)?.url ?? item.thumbnailUrl,
-      suggestedFilename: `threads_${shortcode}${suffix}.mp4`,
+      suggestedFilename: threadsFilename(username, shortcode, suffix, 'mp4'),
     };
   }
   const candidate = bestThreadsCandidate(item.imageCandidates);
@@ -59,7 +71,7 @@ function normalizeAsset(
     type: 'image',
     url: candidate.url,
     ...assetDimensions(item, candidate.width, candidate.height),
-    suggestedFilename: `threads_${shortcode}${suffix}.jpg`,
+    suggestedFilename: threadsFilename(username, shortcode, suffix, 'jpg'),
   };
 }
 
@@ -98,7 +110,12 @@ export function normalizeThreadsMedia(
             ...(media.gif?.directUrl && media.gif.height
               ? { height: media.gif.height }
               : {}),
-            suggestedFilename: `threads_${media.shortcode}.gif`,
+            suggestedFilename: threadsFilename(
+              media.username,
+              media.shortcode,
+              '',
+              'gif',
+            ),
           },
         ],
       },
@@ -114,7 +131,7 @@ export function normalizeThreadsMedia(
   if (media.assets.length === 0) unavailable();
   const numbered = media.kind === 'carousel' || media.assets.length > 1;
   const assets = media.assets.map((item, index) =>
-    normalizeAsset(item, media.shortcode, index, numbered),
+    normalizeAsset(item, media.username, media.shortcode, index, numbered),
   );
   return {
     post: {

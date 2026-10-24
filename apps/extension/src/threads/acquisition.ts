@@ -31,6 +31,11 @@ interface FetchedHtml {
   redirected: boolean;
 }
 
+interface CachedPost {
+  html: string;
+  ref: ThreadsContentRef;
+}
+
 function postUrl(ref: ThreadsContentRef): string {
   return `${THREADS_ORIGIN}/@${ref.username}/post/${ref.shortcode}/`;
 }
@@ -76,7 +81,11 @@ function isLoginPath(pathname: string): boolean {
   );
 }
 
-function assertFinalPost(ref: ThreadsContentRef, href: string): void {
+function assertFinalPost(
+  ref: ThreadsContentRef,
+  href: string,
+  redirected: boolean,
+): ThreadsContentRef {
   let final: URL;
   try {
     final = new URL(href);
@@ -100,11 +109,17 @@ function assertFinalPost(ref: ThreadsContentRef, href: string): void {
       'The Threads page did not resolve to a supported post.',
     );
   }
-  if (parsed.canonicalUrl !== ref.canonicalUrl)
+  if (parsed.canonicalUrl === ref.canonicalUrl) return ref;
+  // Threads can 301 a stale/former username to the same post's current
+  // canonical handle. Only accept that when the server actually redirected and
+  // the shortcode (the stable post identity) is unchanged. The parser then
+  // validates the publisher against this final, served URL.
+  if (parsed.shortcode !== ref.shortcode || !redirected)
     throw new UniFetchError(
       'UNSUPPORTED_CONTENT',
       'The Threads page did not match the requested post.',
     );
+  return parsed;
 }
 
 function responseError(status: number, target: string): never {
@@ -186,7 +201,7 @@ async function readBoundedText(
 export function createThreadsAcquisition(
   options: ThreadsAcquisitionOptions,
 ): ThreadsAcquisitionAdapter {
-  const cache = new Map<string, string>();
+  const cache = new Map<string, CachedPost>();
   const fetcher = options.fetchImpl ?? fetch;
   const timeoutMs = options.timeoutMs ?? defaultTimeoutMs;
 
@@ -256,11 +271,20 @@ export function createThreadsAcquisition(
       ref: ThreadsContentRef,
     ): Promise<ThreadsAcquisitionResult> {
       const cached = cache.get(ref.canonicalUrl);
-      if (cached) return { html: cached, network: network() };
+      if (cached)
+        return { html: cached.html, network: network(), ref: cached.ref };
       const page = await fetchHtml(postUrl(ref), 'post');
-      assertFinalPost(ref, page.finalUrl);
-      cache.set(ref.canonicalUrl, page.html);
-      return { html: page.html, network: network() };
+      const finalRef = assertFinalPost(ref, page.finalUrl, page.redirected);
+      const entry = { html: page.html, ref: finalRef };
+      cache.set(finalRef.canonicalUrl, entry);
+      // A stale username is a valid alias for the same post. Cache the alias
+      // too so a follow-up call does not repeat the redirect.
+      cache.set(ref.canonicalUrl, entry);
+      return {
+        html: page.html,
+        network: network(),
+        ...(finalRef !== ref ? { ref: finalRef } : {}),
+      };
     },
 
     async acquireShare(ref: ThreadsShareRef): Promise<ThreadsShareExpansion> {
@@ -288,7 +312,7 @@ export function createThreadsAcquisition(
           'This Threads share link is unavailable.',
         );
       const postRef = parseThreadsShareLocation(ref, page.finalUrl);
-      cache.set(postRef.canonicalUrl, page.html);
+      cache.set(postRef.canonicalUrl, { html: page.html, ref: postRef });
       return { location: page.finalUrl, network: network() };
     },
 

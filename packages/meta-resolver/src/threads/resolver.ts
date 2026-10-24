@@ -19,6 +19,12 @@ import type { ThreadsResolvedKind } from './types';
 export interface ThreadsAcquisitionResult {
   html: string;
   network: { origin: string; purpose: 'metadata' }[];
+  /**
+   * Final canonical reference when the official host redirected a stale
+   * username to the same post shortcode. Acquisition adapters that do not
+   * follow redirects omit this; the requested ref is then authoritative.
+   */
+  ref?: ThreadsContentRef;
 }
 
 export interface ThreadsShareExpansion {
@@ -56,18 +62,26 @@ export async function resolveThreadsPost(
   acquisition: ThreadsAcquisitionAdapter,
 ): Promise<ThreadsResolutionResult> {
   const post = await acquisition.acquirePost(ref);
-  const media = parseThreadsSsrHtml(post.html, ref);
+  // An official same-shortcode redirect can move a post to its current
+  // username. Parse and normalize against the final publisher so identity is
+  // still checked exactly, against the URL Threads actually served.
+  const effectiveRef = post.ref ?? ref;
+  const media = parseThreadsSsrHtml(post.html, effectiveRef);
   let gifUrl: string | undefined;
   let embedNetwork: ThreadsAcquisitionResult['network'] = [];
   if (media.kind === 'gif') {
     gifUrl = media.gif?.directUrl;
     if (!gifUrl) {
-      const embed = await acquisition.acquireEmbed(ref);
-      gifUrl = parseThreadsEmbedGif(embed.html, ref).url;
+      const embed = await acquisition.acquireEmbed(effectiveRef);
+      gifUrl = parseThreadsEmbedGif(embed.html, effectiveRef).url;
       embedNetwork = embed.network;
     }
   }
-  const normalized = normalizeThreadsMedia(media, ref.canonicalUrl, gifUrl);
+  const normalized = normalizeThreadsMedia(
+    media,
+    effectiveRef.canonicalUrl,
+    gifUrl,
+  );
   return {
     ...normalized,
     source: 'live',

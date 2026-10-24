@@ -97,16 +97,28 @@ describe('Threads browser acquisition', () => {
     ]);
   });
 
-  it('fails closed when the final post is not the requested publisher', async () => {
+  it('accepts an official same-shortcode redirect to a renamed account', async () => {
+    const renamed = {
+      username: 'unifetch_threads_renamed',
+      shortcode: imageCode,
+      canonicalUrl: `https://www.threads.com/@unifetch_threads_renamed/post/${imageCode}/`,
+    };
+    const fetcher = vi.fn(async () =>
+      response(imageSsr(), {
+        url: `https://www.threads.com/@${renamed.username}/post/${imageCode}/`,
+        redirected: true,
+      }),
+    );
     const acquisition = createThreadsAcquisition({
       headerRule: headerRule(),
-      fetchImpl: async () =>
-        response(imageSsr(), {
-          url: 'https://www.threads.com/@someone_else/post/synthetic-threads-image/',
-          redirected: true,
-        }),
+      fetchImpl: fetcher,
     });
-    await expectCode(acquisition.acquirePost(ref()), 'UNSUPPORTED_CONTENT');
+    const first = await acquisition.acquirePost(ref());
+    expect(first.ref).toEqual(renamed);
+    // The stale alias is cached with the same final ref; no second request.
+    const second = await acquisition.acquirePost(ref());
+    expect(second.ref).toEqual(renamed);
+    expect(fetcher).toHaveBeenCalledOnce();
   });
 
   it('fails closed when the final post code differs', async () => {
