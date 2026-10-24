@@ -38,16 +38,16 @@ UniFetch 是開源、隱私導向、由使用者主動觸發的社群媒體下�
 
 ## 2. 目前支援的平台與功能
 
-| 平台／內容                       | Web/PWA `unifetch.pages.dev`       | Chromium 擴充功能（GitHub Releases ZIP，unpacked） |
-| -------------------------------- | ---------------------------------- | -------------------------------------------------- |
-| Instagram Post（單圖）           | 公開中繼資料（Resolver，已測樣本） | 登入態解析＋下載（曾實機驗證）                     |
-| Instagram Carousel               | 公開中繼資料（Resolver，已測樣本） | 登入態多媒體解析＋依序下載（曾實機驗證）           |
-| Instagram Reel                   | 公開中繼資料（Resolver，已測樣本） | 登入態解析＋下載（曾實機驗證）                     |
-| Instagram Story（URL 有明確 id） | 不支援                             | 單一圖片或影片（曾實機驗證）                       |
-| Instagram Story（只有 username） | 不支援                             | **不支援，fail-closed**                            |
-| Instagram Highlights             | 不支援                             | 不支援                                             |
-| Facebook                         | 僅顯示「Coming soon」              | 未實作                                             |
-| Threads                          | 僅顯示「Coming soon」              | 未實作                                             |
+| 平台／內容                       | Web/PWA `unifetch.pages.dev`           | Chromium 擴充功能（GitHub Releases ZIP，unpacked） |
+| -------------------------------- | -------------------------------------- | -------------------------------------------------- |
+| Instagram Post（單圖）           | 公開中繼資料（Resolver，已測樣本）     | 登入態解析＋下載（曾實機驗證）                     |
+| Instagram Carousel               | 公開中繼資料（Resolver，已測樣本）     | 登入態多媒體解析＋依序下載（曾實機驗證）           |
+| Instagram Reel                   | 公開中繼資料（Resolver，已測樣本）     | 登入態解析＋下載（曾實機驗證）                     |
+| Instagram Story（URL 有明確 id） | 不支援                                 | 單一圖片或影片（曾實機驗證）                       |
+| Instagram Story（只有 username） | 不支援                                 | **不支援，fail-closed**                            |
+| Instagram Highlights             | 不支援                                 | 不支援                                             |
+| Facebook                         | 僅顯示「Coming soon」                  | 未實作                                             |
+| Threads Post（公開）             | 公開中繼資料（Resolver，T1C 正式驗證） | 未實作                                             |
 
 狀態用語：
 
@@ -585,43 +585,65 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 
 ---
 
-## 16. T1B Threads 公開貼文實作現況
+## 16. T1C Threads 公開貼文正式發布現況（2026-10-24）
 
-T1B 已在 `feat/threads-public-media` 分支完成，尚未合併 `main`、尚未部署正式 Worker。
+T1B 實作已由 `feat/threads-public-media` 以 fast-forward 方式合併到 `main`：`6bc2ed9` → `c92d832`。功能分支保留，沒有 rewrite 或 force push。Worker 與 Pages 都已部署到既有正式專案。
 
-### 16.1 已實作
+### 16.1 正式發布座標
 
-- 新增 `packages/meta-resolver/src/threads/`：content-ref、SSR/Relay parser、GIF embed fallback parser、normalizer、resolver contract、sanitized fixtures。
-- 新增 `apps/resolver-worker/src/threads-acquisition.ts`：只抓取由已驗證 reference 建構的 canonical Threads URL；`redirect: 'manual'`、`credentials: 'omit'`、10 秒 timeout、4 MiB HTML bound；不抓媒體 bytes。
-- Worker 依 `parseSupportedUrl` 分派 Instagram / Threads；Instagram 行為未改。
+| 項目                  | 值                                                       |
+| --------------------- | -------------------------------------------------------- |
+| `main` release commit | `c92d832`                                                |
+| Resolver Worker       | `unifetch-resolver`                                      |
+| Worker deployment     | `dcabbaeb-a904-4e9e-ab94-f8b6a80d7270`                   |
+| Worker version        | `be1a078c-f101-4d3f-8e5b-270e153f1631`                   |
+| Worker URL            | `https://unifetch-resolver.cernmeow.workers.dev`         |
+| 正式 CORS             | 僅 `https://unifetch.pages.dev`                          |
+| Pages deployment      | `75dcedd7-c190-45af-b394-0e3b997b8cb4`                   |
+| Pages immutable URL   | `https://75dcedd7.unifetch.pages.dev`                    |
+| Pages production URL  | `https://unifetch.pages.dev`                             |
+| Extension             | 未變更，`v0.2.0` release asset 重新下載核對 SHA-256 一致 |
+
+回滾參考（部署前狀態）：Worker deployment `631278e6-c02d-43fd-86ec-e5948ab3114c`（version `0a8e5ccb-084d-49af-be69-cd1a91dcb78c`）；Pages deployment `efbf4799-5b8d-4090-8d54-19f6454769ac`。
+
+### 16.2 已實作
+
+- `packages/meta-resolver/src/threads/`：content-ref、SSR/Relay parser、GIF embed fallback parser、normalizer、resolver contract、sanitized fixtures。
+- `apps/resolver-worker/src/threads-acquisition.ts`：只抓取由已驗證 reference 建構的 canonical Threads URL；`redirect: 'manual'`、`credentials: 'omit'`、10 秒 timeout、4 MiB HTML bound；不抓媒體 bytes。
+- Worker 依 `parseSupportedUrl` 分派 Instagram / Threads；Instagram 分支程式碼未改。
 - `resolverApiResponseSchema` 允許 `platform: 'threads'`。
 - Web client 將 canonical Threads URL 送至 Resolver；Result UI 顯示實際平台、Video/GIF/Carousel，隱私文案不再硬寫 Instagram。
 - Downloader 對 `image/gif` 保留原始 bytes 與動畫，不再轉成 JPEG；Instagram 圖片正規化行為不變。
 - `HomeView` 將 Threads 標為 public capability；Facebook 仍為 planned；Extension 未加入 Threads host permission。
 
-### 16.2 已驗證
+### 16.3 正式環境已驗證
 
-- 公開 Threads single image、20-image carousel、native video、video carousel child、GIF。
-- 本地 `workerd` 與 `wrangler dev --remote` Cloudflare edge 都成功回傳 SSR metadata。
-- CDN 回應 JPEG/MP4/GIF 且允許 CORS；GIF 為 26-frame animated GIF。
-- 實際瀏覽器下載成功：JPEG、四張依原始順序的 carousel JPEG、MP4、174,276-byte animated GIF。
-- Owner mismatch、invalid code、`/t/`、profile URL 都在 Worker 端 typed fail-closed。
-- `pnpm test`、`pnpm lint`、`pnpm build`、`pnpm format:check` 與 `git diff --check` 需在最終 commit 前全部通過。
+- Threads single image：正式 Worker 回傳 JPEG metadata；正式瀏覽器下載得到 JPEG。
+- Native video：正式 Worker 回傳 direct MP4；正式瀏覽器可播放（720×1280），另一下載樣本得到可讀 MP4（H.264）。
+- Mixed carousel：正式 Worker 回傳 3 個 asset，順序為 video/video/image；正式瀏覽器 Download all 得到 3 個依序命名的檔案（兩個 MP4＋一個 JPEG）。
+- Giphy GIF：正式 Worker 回傳 `image/gif`；正式瀏覽器下載得到 136,696-byte、17-frame、259×200 的 animated GIF，未被轉成靜態 JPEG。
+- Owner mismatch、`/t/`、profile、search、share URL 都在 Worker 端 typed fail-closed；不可用貼文回 `CONTENT_UNAVAILABLE`。
+- CORS preflight 只允許 `https://unifetch.pages.dev`，沒有 wildcard、沒有 `Access-Control-Allow-Credentials`；Worker 未出現在媒體請求路徑。
+- `/share?url=…` 會先清除 query、canonicalize Threads URL，再進行解析，最終網址為 `/`。
+- `/extension` 可存取並連到既有 `extension-v0.2.0` GitHub Release asset；實測 ZIP SHA-256 與大小仍為 `6dcfd8fda34e80c3030762cf2ae576f2f0b29f8d3ee2da9af05351031f2463f3` / 252,431 bytes。
+- `pnpm test` 795 passed（44 files）、`pnpm lint`、`pnpm typecheck`、`pnpm build`、`pnpm format:check`、`git diff --check` 均通過。
 
-### 16.3 尚未做
+### 16.4 尚未驗證／已知風險
 
-- 尚未正式部署 `unifetch-resolver` 或 Pages；正式推廣需先完成 production edge smoke test（同樣確認導航 headers 與 SSR）。
-- 未實作 Threads extension；未支援 `/t/` 短連結、profiles、search、share、private/login、quoted/reposted substitution。
-- 未支援 audio-only、HLS/DASH-only video、transcoding、crawling/bulk。
+- Instagram 正式 live metadata 在 T1C 取樣時全部回 `LOGIN_REQUIRED`；無法證明目前上游仍可匿名解析。Instagram 分支程式碼與 T1B 前完全相同，Instagram 自動測試仍通過，但**live Instagram regression 在本次 release 標記為未驗證**。
+- 未在真實 Chrome 重新執行 extension「Load unpacked → Instagram 登入 → 下載」流程；extension 本次未變更。
+- GIF 僅支援已測 Giphy attachment；embed 可能只提供 200px 高度變體，且未驗證 animated WebP 或其他 GIF provider。
+- 未支援 `/t/` 短連結、`/share/` 連結、profiles、search、replies、quoted/reposted substitution、private/login、audio-only、HLS/DASH-only video。
 - Threads SSR/Relay 與 GIF embed 都是平台內部格式；未來變動時應 fail closed，不要加猜測 fallback。
+- 大型 native video（>5 MiB）在此瀏覽器自動化環境下載擷取失敗，但同一來源的 1.37 MiB MP4 下載成功；較大影片的實體下載仍應由真人裝置補測。
 
-### 16.4 安全邊界
+### 16.5 安全邊界
 
 - 只處理使用者明確提供的一個 canonical public post URL。
 - Worker 不轉發 Cookie/Authorization，不抓媒體，不代理媒體。
 - Parser 同時要求 shortcode 與 publisher username；不遍歷 related/quoted/replies。
 - GIF fallback 只接受 exact-post embed 內、HTTPS、`*.giphy.com/*.gif` 的 direct URL；placeholder/OG 不得當成 GIF。
-- 無 persistent history、cache、KV/R2/D1 或 analytics。
+- 無 persistent history、cache、KV/R2/D1 或 analytics；正式頁面實測 `document.cookie`、localStorage、sessionStorage 均為空。
 
 ---
 

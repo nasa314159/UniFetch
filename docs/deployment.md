@@ -12,6 +12,25 @@ Deploy the static Web/PWA on Cloudflare Pages and the metadata Resolver as a sep
 
 The Pages project is not connected to a Git provider; production is published from a locally built `apps/web/dist`. Do not touch other Pages projects (`linktree`, `114-514-org`), custom domains, DNS or billing. The extension is not deployed to Cloudflare.
 
+## T1C Threads release checkpoint (2026-10-24)
+
+| Item                       | Value                                                                  |
+| -------------------------- | ---------------------------------------------------------------------- |
+| Base `main`                | `6bc2ed9`                                                              |
+| Released `main`            | `c92d832` (fast-forward from `feat/threads-public-media`; branch kept) |
+| Resolver deployment        | `dcabbaeb-a904-4e9e-ab94-f8b6a80d7270`                                 |
+| Resolver version           | `be1a078c-f101-4d3f-8e5b-270e153f1631`                                 |
+| Resolver URL               | `https://unifetch-resolver.cernmeow.workers.dev`                       |
+| Resolver `ALLOWED_ORIGINS` | `https://unifetch.pages.dev` only                                      |
+| Pages deployment           | `75dcedd7-c190-45af-b394-0e3b997b8cb4`                                 |
+| Pages immutable URL        | `https://75dcedd7.unifetch.pages.dev`                                  |
+| Pages production URL       | `https://unifetch.pages.dev`                                           |
+| Extension                  | unchanged `v0.2.0`; ZIP and SHA-256 rechecked from GitHub Releases     |
+
+The previous Worker deployment for rollback reference was `631278e6-c02d-43fd-86ec-e5948ab3114c` (version `0a8e5ccb-084d-49af-be69-cd1a91dcb78c`). The previous Pages deployment was `efbf4799-5b8d-4090-8d54-19f6454769ac`. Do not guess a rollback target; confirm it in Cloudflare first.
+
+T1C production verification passed for Threads single image, native MP4 (playable preview and download), mixed video/video/image carousel (ordered downloads) and a Giphy GIF (17-frame animated GIF preserved; reduced 259×200 variant). Owner mismatch, `/t/`, profile/search/share URLs and unavailable posts failed closed. CORS preflight allowed only `https://unifetch.pages.dev`; no `Access-Control-Allow-Credentials` was present; media bytes were fetched directly from Meta/Giphy CDNs. Sampled public Instagram URLs returned `LOGIN_REQUIRED` from upstream during T1C, so live Instagram resolution is not verified in this release even though its code path is unchanged and its automated tests pass.
+
 ## Resolver
 
 Use the existing authenticated Wrangler installation. From the repository root:
@@ -62,7 +81,7 @@ Pages serves the SPA fallback when no top-level `404.html` exists. Verify `/`, `
 
 Check Worker OPTIONS preflight from the exact Pages origin, malformed/unsupported input, and the inaccessible media/development routes. Responses must remain `Cache-Control: no-store` with no credential-bearing CORS headers.
 
-Before enabling Threads in production, verify that the deployed Cloudflare edge preserves the navigation-related request headers needed for Threads SSR. A `wrangler dev --remote` run against a bounded set of public posts is the minimum staging check; if the edge returns the JavaScript shell instead of SSR metadata, keep Threads disabled and do not add a proxy or weaken parser requirements. Check one public Threads image, carousel, native video and GIF post, plus canonical owner/code rejection and `/t/` rejection. Do not log or retain live post IDs, media URLs, authors or captions.
+Threads SSR was confirmed through the deployed Cloudflare edge during T1C: the production Worker returned normalized metadata for bounded public image, native-video, mixed-carousel and Giphy-GIF samples. If a future deployment returns the JavaScript shell instead of SSR metadata, keep the affected capability disabled and do not add a proxy or weaken parser requirements. Recheck one public Threads image, carousel, native video and GIF post, plus canonical owner/code rejection and `/t/` rejection. Do not log or retain live post IDs, media URLs, authors or captions.
 
 In a production browser check all three fixtures, explicitly supplied public Instagram content, direct preview, Blob download, Open original and the privacy panel. For Threads, check a public image, video and GIF, including GIF animation preservation and the absence of a static-preview substitution. Check share query replacement, service-worker registration and the GET `share_target` manifest entry. Full mobile share-sheet testing remains human device QA.
 
