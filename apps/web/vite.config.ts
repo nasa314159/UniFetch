@@ -5,8 +5,10 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      registerType: 'prompt',
-      injectRegister: 'script',
+      // Production releases must replace an older cached shell automatically;
+      // otherwise an installed PWA can keep resolving from a pre-release build.
+      registerType: 'autoUpdate',
+      injectRegister: 'auto',
       includeAssets: ['icon.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'UniFetch',
