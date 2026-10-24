@@ -26,7 +26,11 @@ import {
   type RuntimeInfo,
 } from './runtime-info';
 import { parseExtensionTarget } from './target';
-import { ensureThreadsPermission } from './threads/permission';
+import {
+  hasThreadsPermission,
+  requestThreadsPermissionNow,
+  type PermissionStatus,
+} from './threads/permission';
 
 const resolveButton = document.querySelector<HTMLButtonElement>('#resolve');
 const downloadButton = document.querySelector<HTMLButtonElement>('#download');
@@ -40,6 +44,25 @@ const list = document.querySelector<HTMLUListElement>('#results');
 /** In-memory only: never persisted, never displayed as a URL. */
 let resolvedCache: ResolvedCache | undefined;
 const downloadGuard = createSingleFlight();
+
+/**
+ * URL of the tab that was active when the popup opened. It is used only to
+ * start a Threads permission request inside the click's user gesture, before
+ * any asynchronous tab lookup can consume it. The authoritative target is
+ * still re-read on every action.
+ */
+let activeTabSnapshot: { id: number; url?: string } | undefined;
+
+async function refreshActiveTabSnapshot(): Promise<void> {
+  try {
+    activeTabSnapshot = await activeTabId();
+  } catch {
+    activeTabSnapshot = undefined;
+  }
+}
+
+const THREADS_PERMISSION_FAILURE =
+  'Threads access not granted · PERMISSION_REQUIRED · allow www.threads.com and retry';
 
 /**
  * Build/protocol handshake state. The popup starts closed (all actions
@@ -145,20 +168,20 @@ function activeTargetLabel(): string {
 
 /**
  * Starts the optional Threads permission request during the click's user
- * gesture when the manual URL is already known to be Threads. Active-tab
- * detection needs one short tabs.query, after which the caller reuses or
- * requests the same narrow origin.
+ * gesture. The manual URL is parsed synchronously; otherwise the popup-open
+ * tab snapshot is used. If neither is a Threads target, no request is made, so
+ * Instagram never triggers a Threads prompt. `permissions.request` is invoked
+ * before any `await` so Chrome still sees the transient activation.
  */
-function earlyThreadsPermission():
-  | Promise<{
-      granted: boolean;
-      requested: boolean;
-    }>
-  | undefined {
+function earlyThreadsPermission(): Promise<PermissionStatus> | undefined {
   const value = urlInput?.value.trim();
-  const parsed = value ? parseManualUrl(value) : undefined;
-  return parsed?.platform === 'threads'
-    ? ensureThreadsPermission(chrome.permissions)
+  const target = value
+    ? parseManualUrl(value)
+    : activeTabSnapshot?.url
+      ? parseExtensionTarget(activeTabSnapshot.url)
+      : undefined;
+  return target?.platform === 'threads'
+    ? requestThreadsPermissionNow(chrome.permissions)
     : undefined;
 }
 
@@ -168,10 +191,10 @@ async function authorizeThreads(
   early: ReturnType<typeof earlyThreadsPermission>,
 ): Promise<boolean> {
   if (target.platform !== 'threads') return true;
-  const result = early
-    ? await early
-    : await ensureThreadsPermission(chrome.permissions);
-  return result.granted;
+  if (early) return (await early).granted;
+  // The gesture is already gone here (the target needed an async lookup).
+  // Reuse an existing grant, but never prompt from a background continuation.
+  return hasThreadsPermission(chrome.permissions);
 }
 
 // A changed manual input invalidates any cached assets for the old target.
@@ -219,15 +242,7 @@ resolveButton?.addEventListener('click', async () => {
       return;
     }
     if (!(await authorizeThreads(target, earlyPermission))) {
-      status.textContent = applyResolveResponse(
-        {
-          ok: false,
-          platform: 'threads',
-          contentType: 'post',
-          error: 'PERMISSION_REQUIRED',
-        },
-        fallbackLabel,
-      ).message;
+      status.textContent = THREADS_PERMISSION_FAILURE;
       return;
     }
     const response = (await chrome.runtime.sendMessage({
@@ -277,15 +292,7 @@ downloadButton?.addEventListener('click', () => {
         return;
       }
       if (!(await authorizeThreads(target, earlyPermission))) {
-        status.textContent = applyResolveResponse(
-          {
-            ok: false,
-            platform: 'threads',
-            contentType: 'post',
-            error: 'PERMISSION_REQUIRED',
-          },
-          activeTargetLabel(),
-        ).message;
+        status.textContent = THREADS_PERMISSION_FAILURE;
         return;
       }
       const outcome = await downloadAllCurrentTarget({
@@ -314,4 +321,5 @@ downloadButton?.addEventListener('click', () => {
 
 // Start closed, then open only when the background confirms the same protocol.
 syncActionAvailability();
+void refreshActiveTabSnapshot();
 void verifyRuntime();

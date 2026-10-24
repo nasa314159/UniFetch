@@ -34,6 +34,17 @@ import { createChromeThreadsHeaderRule } from './threads/header-rule';
 import { hasThreadsPermission } from './threads/permission';
 import { resolveThreadsTarget } from './threads/resolve';
 
+/**
+ * One shared rule lease for the whole service-worker lifetime. Every Threads
+ * resolution must use this instance: creating one lease per request would let
+ * two concurrent resolutions install and remove the same rule ID independently
+ * and strip headers from each other's in-flight fetch.
+ */
+const threadsHeaderRule = createChromeThreadsHeaderRule();
+// Clean up a rule left behind if the worker was terminated mid-acquisition.
+// Serialized inside the lease, so it cannot remove a rule installed later.
+void threadsHeaderRule.discardStale();
+
 interface RunFailure {
   ok: false;
   error: string;
@@ -304,7 +315,7 @@ async function resolveThreadsRequest(
     };
   try {
     const acquisition = createThreadsAcquisition({
-      headerRule: createChromeThreadsHeaderRule(),
+      headerRule: threadsHeaderRule,
     });
     return await resolveThreadsTarget(target, acquisition);
   } catch (error) {

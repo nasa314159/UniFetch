@@ -15,7 +15,12 @@ export interface PermissionStatus {
   granted: boolean;
   /** True when this call had to ask the user rather than reuse a grant. */
   requested: boolean;
+  /** True when the native prompt was not answered within the bound. */
+  timedOut?: boolean;
 }
+
+/** A human may need time to read the prompt, but the popup must never hang. */
+export const THREADS_PERMISSION_TIMEOUT_MS = 60_000;
 
 export async function hasThreadsPermission(
   permissions: PermissionsApi | undefined,
@@ -26,6 +31,41 @@ export async function hasThreadsPermission(
   } catch {
     return false;
   }
+}
+
+/**
+ * Requests the narrow Threads host permission. This function calls
+ * `permissions.request` synchronously before returning, so the click's user
+ * gesture is still active; awaiting `permissions.contains` first can lose the
+ * gesture in some Chrome builds. When the grant already exists Chrome resolves
+ * `true` without showing a prompt.
+ */
+export function requestThreadsPermissionNow(
+  permissions: PermissionsApi | undefined,
+  timeoutMs: number = THREADS_PERMISSION_TIMEOUT_MS,
+): Promise<PermissionStatus> {
+  if (!permissions)
+    return Promise.resolve({ granted: false, requested: false });
+  let pending: Promise<boolean>;
+  try {
+    pending = permissions.request({ origins: [THREADS_HOST_PERMISSION] });
+  } catch {
+    return Promise.resolve({ granted: false, requested: true });
+  }
+  const settled: Promise<PermissionStatus> = pending.then(
+    (granted) => ({ granted: Boolean(granted), requested: true }),
+    () => ({ granted: false, requested: true }),
+  );
+  if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) return settled;
+  return new Promise<PermissionStatus>((resolve) => {
+    const timer = setTimeout(() => {
+      resolve({ granted: false, requested: true, timedOut: true });
+    }, timeoutMs);
+    void settled.then((status) => {
+      clearTimeout(timer);
+      resolve(status);
+    });
+  });
 }
 
 /**
@@ -46,12 +86,5 @@ export async function ensureThreadsPermission(
     return { granted: false, requested: false };
   }
   if (existing) return { granted: true, requested: false };
-  try {
-    const granted = await permissions.request({
-      origins: [THREADS_HOST_PERMISSION],
-    });
-    return { granted: Boolean(granted), requested: true };
-  } catch {
-    return { granted: false, requested: true };
-  }
+  return requestThreadsPermissionNow(permissions);
 }

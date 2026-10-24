@@ -35,8 +35,10 @@ describe('Threads navigation-header session rule', () => {
     expect(added).toBeDefined();
     expect(added?.id).toBe(THREADS_HEADER_RULE_ID);
     expect(added?.condition).toEqual({
-      requestDomains: ['threads.com'],
-      resourceTypes: ['xmlhttprequest', 'other'],
+      requestDomains: ['www.threads.com'],
+      resourceTypes: ['xmlhttprequest'],
+      tabIds: [-1],
+      urlFilter: '|https://www.threads.com/',
     });
     expect(added?.action.requestHeaders).toEqual(
       THREADS_NAVIGATION_HEADERS.map((header) => ({ ...header })),
@@ -104,5 +106,56 @@ describe('Threads navigation-header session rule', () => {
     await expect(rule.withHeaders(async () => 'ok')).rejects.toMatchObject({
       code: 'BROWSER_RESTRICTION',
     });
+  });
+
+  it('scopes header changes to non-tab requests on the exact Threads origin', async () => {
+    const fake = api();
+    const rule = createThreadsHeaderRule(fake.api);
+    await rule.withHeaders(async () => 'ok');
+    const condition = fake.calls[0].addRules?.[0]?.condition;
+    // tabIds.TAB_ID_NONE: only the extension service worker/popup, never an
+    // ordinary Threads browsing tab.
+    expect(condition?.tabIds).toEqual([-1]);
+    expect(condition?.resourceTypes).toEqual(['xmlhttprequest']);
+    expect(condition?.requestDomains).toEqual(['www.threads.com']);
+    expect(condition?.urlFilter).toBe('|https://www.threads.com/');
+    // No header may remove or add cookies/authorization.
+    const headers = fake.calls[0].addRules?.[0]?.action.requestHeaders ?? [];
+    for (const entry of headers) {
+      expect(entry.operation).toBe('set');
+      expect(entry.header).not.toMatch(/cookie|authorization|auth/i);
+    }
+  });
+
+  it('removes a stale rule on worker start without touching a live lease', async () => {
+    const fake = api();
+    const rule = createThreadsHeaderRule(fake.api);
+    await rule.discardStale();
+    expect(fake.calls).toEqual([{ removeRuleIds: [THREADS_HEADER_RULE_ID] }]);
+
+    let started!: () => void;
+    const taskStarted = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const live = rule.withHeaders(async () => {
+      started();
+      await gate;
+      return 'ok';
+    });
+    await taskStarted;
+    await rule.discardStale();
+    // The in-use rule must not be removed by the startup cleanup.
+    expect(
+      fake.calls.filter((call) => !call.addRules && call.removeRuleIds?.length),
+    ).toHaveLength(1);
+    release();
+    await expect(live).resolves.toBe('ok');
+    expect(
+      fake.calls.filter((call) => !call.addRules && call.removeRuleIds?.length),
+    ).toHaveLength(2);
   });
 });

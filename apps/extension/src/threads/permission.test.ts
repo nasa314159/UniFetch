@@ -3,6 +3,7 @@ import {
   THREADS_HOST_PERMISSION,
   ensureThreadsPermission,
   hasThreadsPermission,
+  requestThreadsPermissionNow,
   type PermissionsApi,
 } from './permission';
 
@@ -79,5 +80,42 @@ describe('optional Threads host permission', () => {
       requested: false,
     });
     expect(permissions.request).not.toHaveBeenCalled();
+  });
+
+  it('requests synchronously inside the user gesture without a contains await', async () => {
+    const permissions = api({ contains: false, request: true });
+    const pending = requestThreadsPermissionNow(permissions);
+    // `request` must already be in flight before any microtask runs, otherwise
+    // Chrome may reject the call as not user-gesture initiated.
+    expect(permissions.request).toHaveBeenCalledExactlyOnceWith({
+      origins: [THREADS_HOST_PERMISSION],
+    });
+    expect(permissions.contains).not.toHaveBeenCalled();
+    await expect(pending).resolves.toEqual({ granted: true, requested: true });
+  });
+
+  it('reports a gesture-scoped denial or throw as a typed failure', async () => {
+    await expect(
+      requestThreadsPermissionNow(api({ contains: false, request: false })),
+    ).resolves.toEqual({ granted: false, requested: true });
+    await expect(
+      requestThreadsPermissionNow(
+        api({ contains: false, request: new Error('no gesture') }),
+      ),
+    ).resolves.toEqual({ granted: false, requested: true });
+    await expect(requestThreadsPermissionNow(undefined)).resolves.toEqual({
+      granted: false,
+      requested: false,
+    });
+  });
+
+  it('never waits indefinitely for an unanswered native prompt', async () => {
+    const permissions: PermissionsApi = {
+      contains: vi.fn(async () => false),
+      request: vi.fn(() => new Promise<boolean>(() => {})),
+    };
+    await expect(requestThreadsPermissionNow(permissions, 10)).resolves.toEqual(
+      { granted: false, requested: true, timedOut: true },
+    );
   });
 });

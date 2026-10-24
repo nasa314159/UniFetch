@@ -57,6 +57,8 @@ declare global {
           condition: {
             requestDomains: string[];
             resourceTypes: string[];
+            tabIds?: number[];
+            urlFilter?: string;
           };
         }[];
       }): Promise<void>;
