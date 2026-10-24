@@ -3,6 +3,8 @@ import type {
   ThreadsAcquisitionAdapter,
   ThreadsAcquisitionResult,
   ThreadsContentRef,
+  ThreadsShareExpansion,
+  ThreadsShareRef,
 } from '@unifetch/meta-resolver/threads';
 import { boundedBody } from './bounded-body';
 import {
@@ -35,6 +37,10 @@ function postUrl(ref: ThreadsContentRef): string {
 
 function embedUrl(ref: ThreadsContentRef): string {
   return `${origin}/@${ref.username}/post/${ref.shortcode}/embed`;
+}
+
+function shareUrl(ref: ThreadsShareRef): string {
+  return `${origin}/share/${ref.token}/`;
 }
 
 function unavailable(): never {
@@ -105,6 +111,121 @@ export class CloudflareThreadsAcquisitionAdapter implements ThreadsAcquisitionAd
 
   acquireEmbed(ref: ThreadsContentRef): Promise<ThreadsAcquisitionResult> {
     return this.fetchHtml(embedUrl(ref), 'embed');
+  }
+
+  /**
+   * Threads returns a single 302 to the canonical post only for browser-like
+   * navigation headers. The destination is not followed here; the pure
+   * share-location parser validates it before any post request is made.
+   */
+  async acquireShare(ref: ThreadsShareRef): Promise<ThreadsShareExpansion> {
+    const target = shareUrl(ref);
+    let url: URL;
+    try {
+      url = new URL(target);
+    } catch {
+      throw new UniFetchError(
+        'UNSUPPORTED_CONTENT',
+        'The Threads share target is invalid.',
+      );
+    }
+    if (
+      url.origin !== origin ||
+      url.username ||
+      url.password ||
+      url.port ||
+      !/^\/share\/[A-Za-z0-9_-]{8,32}\/$/.test(url.pathname)
+    )
+      throw new UniFetchError(
+        'UNSUPPORTED_CONTENT',
+        'The Threads share target is invalid.',
+      );
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+    const started = Date.now();
+    let received = false;
+    try {
+      const fetcher = this.fetcher;
+      const response = await fetcher(url.href, {
+        method: 'GET',
+        headers: requestHeaders,
+        redirect: 'manual',
+        cache: 'no-store',
+        credentials: 'omit',
+        signal: controller.signal,
+      });
+      received = true;
+      this.observe?.({
+        stage: 'THREADS_SHARE_REQUEST',
+        fetchThrew: false,
+        ...responseDetails(response),
+        elapsedMs: Date.now() - started,
+      });
+      this.observe?.({
+        stage: 'THREADS_SHARE_RESPONSE',
+        ...responseDetails(response),
+        elapsedMs: Date.now() - started,
+      });
+      if (response.status === 429)
+        throw new UniFetchError(
+          'RATE_LIMITED',
+          'Threads temporarily limited this request.',
+        );
+      if (response.status === 401 || response.status === 403)
+        throw new UniFetchError(
+          'LOGIN_REQUIRED',
+          'Threads requires authentication to expand this share link.',
+        );
+      if (response.status === 404 || response.status === 410)
+        throw new UniFetchError(
+          'CONTENT_UNAVAILABLE',
+          'This Threads share link is unavailable.',
+        );
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get('location');
+        await response.body?.cancel();
+        if (!location)
+          throw new UniFetchError(
+            'UNSUPPORTED_CONTENT',
+            'The Threads share link did not resolve to a post.',
+          );
+        return {
+          location,
+          network: [{ origin, purpose: 'metadata' }],
+        };
+      }
+      await response.body?.cancel();
+      if (response.status === 200)
+        throw new UniFetchError(
+          'CONTENT_UNAVAILABLE',
+          'This Threads share link is unavailable.',
+        );
+      throw new UniFetchError(
+        'NETWORK_ERROR',
+        'The Threads share request could not be completed.',
+      );
+    } catch (error) {
+      if (!received) {
+        this.observe?.({
+          stage: 'THREADS_SHARE_REQUEST',
+          fetchThrew: true,
+          ...exceptionDetails(error),
+          elapsedMs: Date.now() - started,
+        });
+        if (error instanceof UniFetchError) throw error;
+        const code = fetchErrorCode(error);
+        throw new UniFetchError(
+          code,
+          code === 'UNKNOWN'
+            ? 'The Threads share request could not be performed.'
+            : 'The Threads share request failed or timed out.',
+        );
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   private async fetchHtml(

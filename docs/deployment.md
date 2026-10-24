@@ -43,6 +43,24 @@ The incident fix has two parts:
 
 A follow-up production-browser check on the canonical origin resolved both a public Threads post and a public Instagram carousel (eight metadata assets). Live Instagram availability remains upstream-dependent; a `LOGIN_REQUIRED` response is a source restriction, not a CORS or schema failure.
 
+## T1D Threads share expansion checkpoint (2026-10-24)
+
+| Item                       | Value                                                |
+| -------------------------- | ---------------------------------------------------- |
+| T1D code commit            | see the release commit recorded in `docs/HANDOFF.md` |
+| Resolver deployment        | `70e2ea05-8271-4f56-a18e-341abd47b9d0`               |
+| Resolver version           | `14fc412d-9971-491a-a226-76f53d0d556d`               |
+| Pages deployment           | `4d5dbc66-05ea-4437-8e3c-59fc54bd58d7`               |
+| Pages deployment alias     | `https://4d5dbc66.unifetch.pages.dev`                |
+| Pages production URL       | `https://unifetch.pages.dev`                         |
+| Resolver `ALLOWED_ORIGINS` | `https://unifetch.pages.dev` only                    |
+
+T1D adds official Threads `/share/<token>/` expansion. The Worker sends one `GET` to `https://www.threads.com/share/<token>/` with browser-navigation headers and `redirect: 'manual'`; Threads answers `302` with a canonical post `Location` only when those headers are present. The Worker does not follow the redirect: it accepts exactly one HTTPS same-origin `/@<username>/post/<shortcode>/` destination, discards the opaque `xmt` query, and then reuses the existing exact-post parser, publisher validation, GIF embed fallback and normalizer. A malformed token fails before any request; a token that returns the generic `200` shell, a login redirect, a cross-origin destination, or a non-post path fails closed with a typed error.
+
+Production checks for T1D resolved two distinct public share links to their canonical posts, re-resolved a canonical permalink unchanged, rejected a malformed token with `INVALID_URL`, and returned `UNSUPPORTED_CONTENT` for a share link whose post has no downloadable media. The browser check on `https://unifetch.pages.dev` resolved the supplied share URL and a canonical permalink, displayed the correct post and preview dimensions, and showed typed errors for malformed and no-media share links.
+
+Instagram is unchanged and remains **not restored**: a production-edge diagnostic showed the anonymous bootstrap returning `200` with CSRF, then the fixed public metadata query returning HTTP `401` JSON classified as `LOGIN_REQUIRED`. The same public request succeeds from a residential network. That is an upstream anonymous-access restriction for Cloudflare egress, not a parser, CORS, service-worker or deployment defect. Do not weaken identity checks or add authenticated/session-based acquisition to the Web path.
+
 ## Resolver
 
 Use the existing authenticated Wrangler installation. From the repository root:
@@ -93,7 +111,9 @@ Pages serves the SPA fallback when no top-level `404.html` exists. Verify `/`, `
 
 Check Worker OPTIONS preflight from the exact Pages origin, malformed/unsupported input, and the inaccessible media/development routes. Responses must remain `Cache-Control: no-store` with no credential-bearing CORS headers.
 
-Threads SSR was confirmed through the deployed Cloudflare edge during T1C: the production Worker returned normalized metadata for bounded public image, native-video, mixed-carousel and Giphy-GIF samples. If a future deployment returns the JavaScript shell instead of SSR metadata, keep the affected capability disabled and do not add a proxy or weaken parser requirements. Recheck one public Threads image, carousel, native video and GIF post, plus canonical owner/code rejection and `/t/` rejection. Do not log or retain live post IDs, media URLs, authors or captions.
+Threads SSR was confirmed through the deployed Cloudflare edge during T1C: the production Worker returned normalized metadata for bounded public image, native-video, mixed-carousel and Giphy-GIF samples. If a future deployment returns the JavaScript shell instead of SSR metadata, keep the affected capability disabled and do not add a proxy or weaken parser requirements. Recheck one public Threads image, carousel, native video and GIF post, plus canonical owner/code rejection and `/t/` rejection.
+
+For share links, check one valid official `/share/<token>/` URL, one canonical permalink, one malformed token and one share link whose post has no downloadable media. Confirm the Worker requests the share URL once and then the canonical post URL, never follows the share redirect, and never returns the token, raw `Location`, upstream body or a share URL in `post.canonicalUrl`. Do not log or retain live post IDs, media URLs, authors or captions.
 
 In a production browser check all three fixtures, explicitly supplied public Instagram content, direct preview, Blob download, Open original and the privacy panel. For Threads, check a public image, video and GIF, including GIF animation preservation and the absence of a static-preview substitution. Check share query replacement, service-worker registration and the GET `share_target` manifest entry. Full mobile share-sheet testing remains human device QA.
 

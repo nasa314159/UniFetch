@@ -82,7 +82,7 @@ watch(
           inputmode="url"
           autocomplete="off"
           spellcheck="false"
-          placeholder="https://www.instagram.com/p/… or https://www.threads.com/@…/post/…"
+          placeholder="https://www.instagram.com/p/… or https://www.threads.com/@…/post/… (or /share/…)"
           :disabled="store.state === 'RESOLVING'"
           required
         />
@@ -200,9 +200,11 @@ watch(
       <h2>A little more transparency.</h2>
       <p>
         Demo buttons use fictional posts and original local media. Other public
-        Instagram post and Reel URLs, and public Threads post URLs, are sent to
-        the UniFetch Resolver for metadata. Media files are not proxied through
-        UniFetch, and no resolution history is stored.
+        Instagram post and Reel URLs, and public Threads post or share URLs, are
+        sent to the UniFetch Resolver for metadata. A Threads share link is
+        expanded once to one canonical public post before metadata is fetched.
+        Media files are not proxied through UniFetch, and no resolution history
+        is stored.
       </p>
     </div>
   </aside>

@@ -10,7 +10,11 @@ import {
   type WebResolutionResult,
 } from '@unifetch/meta-resolver';
 import { parseInstagramContentRef } from '@unifetch/meta-resolver/instagram';
-import { parseThreadsContentRef } from '@unifetch/meta-resolver/threads';
+import {
+  isThreadsSharePath,
+  parseThreadsContentRef,
+  parseThreadsShareRef,
+} from '@unifetch/meta-resolver/threads';
 import { WebRuntime } from '@unifetch/runtime-web';
 
 type ApiFetch = (
@@ -26,8 +30,9 @@ export function createWebResolver(
   const fixtureResolver = createResolver(runtime);
 
   async function resolveRemote(
-    canonicalUrl: string,
+    inputUrl: string,
     platform: 'instagram' | 'threads',
+    expectedCanonicalUrl?: string,
   ): Promise<WebResolutionResult> {
     if (!configuredOrigin)
       throw new UniFetchError(
@@ -61,7 +66,7 @@ export function createWebResolver(
       const response = await fetcher(new URL('/api/resolve', origin), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: canonicalUrl }),
+        body: JSON.stringify({ url: inputUrl }),
         credentials: 'omit',
         cache: 'no-store',
         redirect: 'error',
@@ -90,11 +95,30 @@ export function createWebResolver(
           'PARSER_OUTDATED',
           'The Resolver returned a result for a different platform.',
         );
-      if (result.post.canonicalUrl !== canonicalUrl)
-        throw new UniFetchError(
-          'PARSER_OUTDATED',
-          'The Resolver returned a result for a different URL.',
-        );
+      if (expectedCanonicalUrl) {
+        if (result.post.canonicalUrl !== expectedCanonicalUrl)
+          throw new UniFetchError(
+            'PARSER_OUTDATED',
+            'The Resolver returned a result for a different URL.',
+          );
+      } else {
+        // A share URL is expanded by the Resolver; require the response to
+        // carry one canonical Threads post permalink rather than the token URL.
+        let canonical;
+        try {
+          canonical = parseThreadsContentRef(result.post.canonicalUrl);
+        } catch {
+          throw new UniFetchError(
+            'PARSER_OUTDATED',
+            'The Resolver did not expand the share link to a canonical post.',
+          );
+        }
+        if (canonical.canonicalUrl !== result.post.canonicalUrl)
+          throw new UniFetchError(
+            'PARSER_OUTDATED',
+            'The Resolver returned a non-canonical share expansion.',
+          );
+      }
       return {
         ...result,
         source: 'worker',
@@ -122,13 +146,17 @@ export function createWebResolver(
     async resolve(input: string): Promise<WebResolutionResult> {
       const { url, platform } = parseSupportedUrl(input);
       if (platform === 'threads') {
+        if (isThreadsSharePath(url.pathname)) {
+          const share = parseThreadsShareRef(url);
+          return resolveRemote(share.canonicalShareUrl, 'threads');
+        }
         const ref = parseThreadsContentRef(url);
-        return resolveRemote(ref.canonicalUrl, 'threads');
+        return resolveRemote(ref.canonicalUrl, 'threads', ref.canonicalUrl);
       }
       if (platform !== 'instagram' || isInstagramFixtureUrl(url))
         return fixtureResolver.resolve(input);
       const ref = parseInstagramContentRef(url);
-      return resolveRemote(ref.canonicalUrl, 'instagram');
+      return resolveRemote(ref.canonicalUrl, 'instagram', ref.canonicalUrl);
     },
   };
 }

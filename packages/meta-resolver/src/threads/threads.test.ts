@@ -1,12 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { parseThreadsContentRef } from './content-ref';
+import { parseThreadsContentRef, parseThreadsShareRef } from './content-ref';
 import { parseThreadsEmbedGif } from './embed';
 import { normalizeThreadsMedia } from './normalize';
 import { parseThreadsSsrHtml } from './parser';
-import { resolveThreadsPost } from './resolver';
+import { resolveThreadsInput, resolveThreadsPost } from './resolver';
 import type { ThreadsAcquisitionAdapter } from './resolver';
+import { parseThreadsShareLocation } from './share';
 import image from './__fixtures__/image.json';
+import shareRedirect from './__fixtures__/share-redirect.json';
 import video from './__fixtures__/video.json';
 import carousel from './__fixtures__/carousel.json';
 import gif from './__fixtures__/gif.json';
@@ -62,9 +64,11 @@ function ref(code: string, user = username) {
 function acquisition(
   postHtml: string,
   embed = embedHtml,
+  shareLocation = shareRedirect.location,
 ): ThreadsAcquisitionAdapter & {
   acquirePost: ReturnType<typeof vi.fn>;
   acquireEmbed: ReturnType<typeof vi.fn>;
+  acquireShare: ReturnType<typeof vi.fn>;
 } {
   return {
     acquirePost: vi.fn(async () => ({
@@ -73,6 +77,10 @@ function acquisition(
     })),
     acquireEmbed: vi.fn(async () => ({
       html: embed,
+      network: [{ origin: 'https://www.threads.com', purpose: 'metadata' }],
+    })),
+    acquireShare: vi.fn(async () => ({
+      location: shareLocation,
       network: [{ origin: 'https://www.threads.com', purpose: 'metadata' }],
     })),
   } as never;
@@ -107,6 +115,94 @@ describe('Threads content references', () => {
     expect(() => parseThreadsContentRef(input)).toThrow(
       expect.objectContaining({ code }),
     );
+  });
+});
+
+describe('Threads share references', () => {
+  it.each([
+    'https://www.threads.com/share/synthetic-share-token/',
+    'https://threads.com/share/synthetic-share-token',
+    'https://threads.net/share/synthetic-share-token/?hl=en',
+  ])('canonicalizes an official share URL %s', (input) => {
+    expect(parseThreadsShareRef(input)).toEqual({
+      token: 'synthetic-share-token',
+      canonicalShareUrl: 'https://www.threads.com/share/synthetic-share-token/',
+    });
+  });
+
+  it.each([
+    ['https://www.threads.com/share/abc/', 'INVALID_URL'],
+    [
+      'https://www.threads.com/share/synthetic-share-token/extra/',
+      'UNSUPPORTED_CONTENT',
+    ],
+    ['https://www.threads.com/share/', 'UNSUPPORTED_CONTENT'],
+    [
+      'https://www.threads.com/@user/post/synthetic-code/',
+      'UNSUPPORTED_CONTENT',
+    ],
+    [
+      'https://example.com/share/synthetic-share-token/',
+      'UNSUPPORTED_PLATFORM',
+    ],
+  ])('rejects malformed share input %s', (input, code) => {
+    expect(() => parseThreadsShareRef(input)).toThrow(
+      expect.objectContaining({ code }),
+    );
+  });
+
+  it('accepts only a same-origin canonical post redirect', () => {
+    expect(
+      parseThreadsShareLocation(
+        parseThreadsShareRef(
+          'https://www.threads.com/share/synthetic-share-token/',
+        ),
+        shareRedirect.location,
+      ),
+    ).toEqual(ref(imageCode));
+  });
+
+  it.each([
+    'https://www.threads.net/@unifetch_threads_demo/post/synthetic-threads-image/',
+    'https://evil.example/@unifetch_threads_demo/post/synthetic-threads-image/',
+    'http://www.threads.com/@unifetch_threads_demo/post/synthetic-threads-image/',
+    'https://user:pass@www.threads.com/@unifetch_threads_demo/post/synthetic-threads-image/',
+    'https://www.threads.com/@unifetch_threads_demo/post/synthetic-threads-image/extra/',
+    'https://www.threads.com/login/?next=/share/synthetic-share-token/',
+  ])('rejects an unexpected share destination %s', (location) => {
+    const share = parseThreadsShareRef(
+      'https://www.threads.com/share/synthetic-share-token/',
+    );
+    expect(() => parseThreadsShareLocation(share, location)).toThrow(
+      expect.objectContaining({
+        code: location.includes('/login/')
+          ? 'LOGIN_REQUIRED'
+          : 'UNSUPPORTED_CONTENT',
+      }),
+    );
+  });
+
+  it('resolves a share URL through one expansion and the exact-post parser', async () => {
+    const adapter = acquisition(ssr(image));
+    const result = await resolveThreadsInput(
+      'https://www.threads.com/share/synthetic-share-token/',
+      adapter,
+    );
+    expect(adapter.acquireShare).toHaveBeenCalledWith({
+      token: 'synthetic-share-token',
+      canonicalShareUrl: 'https://www.threads.com/share/synthetic-share-token/',
+    });
+    expect(adapter.acquirePost).toHaveBeenCalledWith(ref(imageCode));
+    expect(result.post.canonicalUrl).toBe(ref(imageCode).canonicalUrl);
+    expect(result.post.platform).toBe('threads');
+    expect(result.kind).toBe('image');
+  });
+
+  it('does not expand a canonical permalink', async () => {
+    const adapter = acquisition(ssr(image));
+    await resolveThreadsInput(ref(imageCode).canonicalUrl, adapter);
+    expect(adapter.acquireShare).not.toHaveBeenCalled();
+    expect(adapter.acquirePost).toHaveBeenCalledOnce();
   });
 });
 

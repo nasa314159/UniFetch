@@ -11,10 +11,7 @@ import {
   parseInstagramMediaResponse,
   normalizeInstagramMedia,
 } from '@unifetch/meta-resolver/instagram';
-import {
-  parseThreadsContentRef,
-  resolveThreadsPost,
-} from '@unifetch/meta-resolver/threads';
+import { resolveThreadsInput } from '@unifetch/meta-resolver/threads';
 import { CloudflareInstagramAcquisitionAdapter } from './acquisition';
 import { CloudflareThreadsAcquisitionAdapter } from './threads-acquisition';
 import { CloudflareMetadataRuntime, type UpstreamFetch } from './runtime';
@@ -179,9 +176,8 @@ export function createWorker(
           );
         const { platform } = parseSupportedUrl(parsed.data.url);
         if (platform === 'threads') {
-          const threadRef = parseThreadsContentRef(parsed.data.url);
-          const resolved = await resolveThreadsPost(
-            threadRef,
+          const resolved = await resolveThreadsInput(
+            parsed.data.url,
             new CloudflareThreadsAcquisitionAdapter(fetcher, observe),
           );
           const body = resolverApiResponseSchema.safeParse({

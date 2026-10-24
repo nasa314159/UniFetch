@@ -156,6 +156,57 @@ describe('Web metadata Resolver client', () => {
     });
   });
 
+  it('expands a Threads share URL through the Resolver and keeps the canonical result', async () => {
+    const fetcher = vi.fn<typeof fetch>(
+      async () =>
+        new Response(JSON.stringify(threadsBody()), {
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    );
+    const result = await createWebResolver(
+      'https://resolver.invalid',
+      fetcher,
+    ).resolve('https://threads.net/share/synthetic-share-token/?hl=en');
+    expect(fetcher.mock.calls[0][1]).toMatchObject({
+      body: JSON.stringify({
+        url: 'https://www.threads.com/share/synthetic-share-token/',
+      }),
+    });
+    expect(result.post.canonicalUrl).toBe(threadsInput);
+    expect(result.post.platform).toBe('threads');
+  });
+
+  it('rejects a share expansion that does not return a canonical post URL', async () => {
+    const asShare = threadsBody();
+    asShare.result.post.canonicalUrl =
+      'https://www.threads.com/share/synthetic-share-token/';
+    const first = vi.fn(async () => new Response(JSON.stringify(asShare)));
+    await expect(
+      createWebResolver('https://resolver.invalid', first).resolve(
+        'https://www.threads.com/share/synthetic-share-token/',
+      ),
+    ).rejects.toMatchObject({ code: 'PARSER_OUTDATED' });
+
+    const withQuery = threadsBody();
+    withQuery.result.post.canonicalUrl = `${threadsInput}?xmt=synthetic`;
+    const second = vi.fn(async () => new Response(JSON.stringify(withQuery)));
+    await expect(
+      createWebResolver('https://resolver.invalid', second).resolve(
+        'https://www.threads.com/share/synthetic-share-token/',
+      ),
+    ).rejects.toMatchObject({ code: 'PARSER_OUTDATED' });
+  });
+
+  it('rejects a malformed share token before calling the Resolver', async () => {
+    const fetcher = vi.fn();
+    await expect(
+      createWebResolver('https://resolver.invalid', fetcher).resolve(
+        'https://www.threads.com/share/abc/',
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_URL' });
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
   it('rejects a Resolver response for a different Threads platform or URL', async () => {
     const wrongPlatform = threadsBody();
     wrongPlatform.result.post.platform = 'instagram';

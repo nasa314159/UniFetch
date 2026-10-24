@@ -480,12 +480,78 @@ describe('Threads public-post Worker path', () => {
     expect(fetcher).toHaveBeenCalledOnce();
   });
 
+  it('expands one official share link and then resolves the canonical post', async () => {
+    const location = `https://www.threads.com/@${threadsUser}/post/synthetic-threads-image/?xmt=synthetic`;
+    const { worker, fetcher } = threadsSetup(
+      new Response(null, { status: 302, headers: { Location: location } }),
+      new Response(threadsSsr(threadsImage), {
+        headers: { 'Content-Type': 'text/html' },
+      }),
+    );
+    const response = await worker.fetch(
+      post({ url: 'https://www.threads.com/share/synthetic-share-token/' }),
+      env,
+    );
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.ok).toBe(true);
+    expect(body.result.post.canonicalUrl).toBe(
+      `https://www.threads.com/@${threadsUser}/post/synthetic-threads-image/`,
+    );
+    expect(body.result.post.assets).toHaveLength(1);
+    expect(resolverApiResponseSchema.safeParse(body).success).toBe(true);
+    expect(fetcher.mock.calls.map((call) => String(call[0]))).toEqual([
+      'https://www.threads.com/share/synthetic-share-token/',
+      `https://www.threads.com/@${threadsUser}/post/synthetic-threads-image/`,
+    ]);
+    expect(fetcher.mock.calls[0][1]).toMatchObject({
+      redirect: 'manual',
+      credentials: 'omit',
+      cache: 'no-store',
+    });
+  });
+
+  it.each([
+    [200, 404, 'CONTENT_UNAVAILABLE'],
+    [404, 404, 'CONTENT_UNAVAILABLE'],
+    [403, 403, 'LOGIN_REQUIRED'],
+    [429, 429, 'RATE_LIMITED'],
+    [503, 502, 'NETWORK_ERROR'],
+  ])('maps a share endpoint HTTP %s to %s', async (upstream, status, code) => {
+    const { worker } = threadsSetup(new Response(null, { status: upstream }));
+    const response = await worker.fetch(
+      post({ url: 'https://www.threads.com/share/synthetic-share-token/' }),
+      env,
+    );
+    expect(response.status).toBe(status);
+    expect((await response.json()).error.code).toBe(code);
+  });
+
+  it('rejects an ambiguous or external share destination', async () => {
+    for (const location of [
+      'https://evil.example/@user/post/synthetic/',
+      'https://www.threads.com/login/?next=/share/synthetic-share-token/',
+      'https://www.threads.com/@user/post/synthetic/extra/',
+    ]) {
+      const { worker, fetcher } = threadsSetup(
+        new Response(null, { status: 302, headers: { Location: location } }),
+      );
+      const response = await worker.fetch(
+        post({ url: 'https://www.threads.com/share/synthetic-share-token/' }),
+        env,
+      );
+      expect(response.status).toBe(location.includes('/login/') ? 403 : 400);
+      expect(fetcher).toHaveBeenCalledOnce();
+    }
+  });
+
   it('rejects unsupported Threads paths before any request', async () => {
     const { worker, fetcher } = threadsSetup();
     for (const url of [
       'https://www.threads.com/@user',
       'https://www.threads.com/t/synthetic-code',
-      'https://www.threads.com/share/synthetic-code',
+      'https://www.threads.com/share/',
+      'https://www.threads.com/share/abc/',
       'https://www.threads.com/search',
     ]) {
       const response = await worker.fetch(post({ url }), env);

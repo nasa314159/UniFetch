@@ -657,6 +657,13 @@ T1B 實作已由 `feat/threads-public-media` 以 fast-forward 方式合併到 `m
 - GIF fallback 只接受 exact-post embed 內、HTTPS、`*.giphy.com/*.gif` 的 direct URL；placeholder/OG 不得當成 GIF。
 - 無 persistent history、cache、KV/R2/D1 或 analytics；正式頁面實測 `document.cookie`、localStorage、sessionStorage 均為空。
 
+### 16.7 T1D Threads 分享連結與 Instagram 上游限制
+
+- Threads 官方 `/share/<token>/`：只有在帶瀏覽器導覽標頭（`Sec-Fetch-Mode`/`Sec-Fetch-Site` 等）時，上游才回 `302` 到 canonical post；沒有這些標頭時回 `200` 一般 HTML。Worker 以既有 `CloudflareThreadsAcquisitionAdapter` 發出一次受限 GET，`redirect: 'manual'`、10 秒 timeout、不帶 credentials，只接受同源 HTTPS 且路徑精確為 `/@<username>/post/<shortcode>/` 的 `Location`；`xmt` query 會丟棄，之後沿用既有 exact-post parser、publisher 檢查、GIF embed fallback 與 normalizer。
+- 惡意／畸形 token 在發出任何請求前就以 `INVALID_URL`/`UNSUPPORTED_CONTENT` 拒絕；登入導向回 `LOGIN_REQUIRED`；跨網域、非 post、額外路徑一律 fail closed。canonical Threads permalink 行為不變。
+- 正式驗證：兩個不同的公開 share URL 都成功展開並解析；同一個 canonical permalink 仍成功；畸形 token 回 `INVALID_URL`；指向無可下載媒體貼文的 share 連結回 `UNSUPPORTED_CONTENT`。正式瀏覽器（`https://unifetch.pages.dev`）可解析 share URL 並顯示預覽尺寸，canonical 與 typed error 也正常。
+- Instagram：以 production edge 診斷確認 bootstrap 仍為 `200` 且取得 CSRF，但固定公開 metadata query 回 HTTP `401` JSON，分類為 `LOGIN_REQUIRED`；同一請求從住宅網路可成功。這是 Cloudflare egress 的匿名上游限制，不是 parser/CORS/service worker/部署缺陷。**Web/PWA Instagram 公開 Post/Carousel/Reel 尚未恢復**；不得為此放寬身分驗證或加入需要使用者 session 的 Web 抓取。Chromium extension 的登入態 Post/Carousel/Reel 與 explicit-id Story 不受影響。
+
 ---
 
 ## 17. 相關文件

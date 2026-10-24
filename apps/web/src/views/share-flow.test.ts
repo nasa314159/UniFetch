@@ -68,6 +68,15 @@ describe('Shortcut input uses the existing Android share flow', () => {
     expect(resolve).not.toHaveBeenCalled();
     expect(store.error?.code).toBe('INVALID_URL');
   });
+  it('forwards an official Threads share link into the same resolve flow', async () => {
+    const { resolve } = await share(
+      `/share?url=${encodeURIComponent('https://threads.net/share/synthetic-share-token/')}`,
+    );
+    await vi.waitFor(() => expect(resolve).toHaveBeenCalledOnce());
+    expect(resolve).toHaveBeenCalledWith(
+      'https://www.threads.com/share/synthetic-share-token/',
+    );
+  });
   it('retains Android text/title share parsing', async () => {
     const { resolve } = await share(
       `/share?text=${encodeURIComponent('Shared https://instagram.com/p/unifetch-demo-image/')}&title=Demo`,

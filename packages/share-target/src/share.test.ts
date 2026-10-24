@@ -33,6 +33,12 @@ describe('Share payload parsing', () => {
         url: 'https://threads.net/@demo/post/synthetic-code?igsh=test',
       }),
     ).toBe('https://www.threads.com/@demo/post/synthetic-code'));
+  it('forwards an official Threads share URL for server-side expansion', () =>
+    expect(
+      parseSharedPayload({
+        url: 'https://threads.net/share/synthetic-share-token/?hl=en',
+      }),
+    ).toBe('https://www.threads.com/share/synthetic-share-token/?hl=en'));
   it('rejects unsupported URLs', () =>
     expect(
       parseSharedPayload({ url: 'https://example.com', text: 'hello' }),
