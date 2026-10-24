@@ -495,7 +495,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 ### 15.1 共用 URL 偵測與平台路由
 
 - 在 `packages/core` 擴充 `parseSupportedUrl` 的 host 清單：
-  - Threads：`threads.net`、`www.threads.net`
+  - Threads：`threads.net`、`www.threads.net`、`threads.com`、`www.threads.com`
   - Facebook：`facebook.com`、`www.facebook.com`、`m.facebook.com`（先做公開貼文）
 - 保持「只接受單一明確內容 URL」，拒絕 profile、feed、search、share 短連結（或先明確標示未支援）。
 - 新增平台無關的 `PlatformAdapter` 介面：
