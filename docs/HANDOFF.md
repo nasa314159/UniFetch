@@ -607,6 +607,15 @@ T1B 實作已由 `feat/threads-public-media` 以 fast-forward 方式合併到 `m
 
 事故前 Worker deployment 為 `dcabbaeb-a904-4e9e-ab94-f8b6a80d7270`（version `be1a078c-f101-4d3f-8e5b-270e153f1631`）。T1C 當時的 Pages deployment `75dcedd7-c190-45af-b394-0e3b997b8cb4` 在下一次部署後已不再提供 alias，不可當成穩定的回滾或測試 URL。
 
+T1D 追加座標（Threads 分享連結）：
+
+- T1D code commit：`8b9ac70`
+- Worker deployment：`70e2ea05-8271-4f56-a18e-341abd47b9d0`
+- Worker version：`14fc412d-9971-491a-a226-76f53d0d556d`
+- Pages deployment：`4d5dbc66-05ea-4437-8e3c-59fc54bd58d7`
+- Pages alias：`https://4d5dbc66.unifetch.pages.dev`
+- 正式 CORS 仍僅 `https://unifetch.pages.dev`
+
 ### 16.2 已實作
 
 - `packages/meta-resolver/src/threads/`：content-ref、SSR/Relay parser、GIF embed fallback parser、normalizer、resolver contract、sanitized fixtures。

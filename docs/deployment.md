@@ -45,15 +45,15 @@ A follow-up production-browser check on the canonical origin resolved both a pub
 
 ## T1D Threads share expansion checkpoint (2026-10-24)
 
-| Item                       | Value                                                |
-| -------------------------- | ---------------------------------------------------- |
-| T1D code commit            | see the release commit recorded in `docs/HANDOFF.md` |
-| Resolver deployment        | `70e2ea05-8271-4f56-a18e-341abd47b9d0`               |
-| Resolver version           | `14fc412d-9971-491a-a226-76f53d0d556d`               |
-| Pages deployment           | `4d5dbc66-05ea-4437-8e3c-59fc54bd58d7`               |
-| Pages deployment alias     | `https://4d5dbc66.unifetch.pages.dev`                |
-| Pages production URL       | `https://unifetch.pages.dev`                         |
-| Resolver `ALLOWED_ORIGINS` | `https://unifetch.pages.dev` only                    |
+| Item                       | Value                                  |
+| -------------------------- | -------------------------------------- |
+| T1D code commit            | `8b9ac70`                              |
+| Resolver deployment        | `70e2ea05-8271-4f56-a18e-341abd47b9d0` |
+| Resolver version           | `14fc412d-9971-491a-a226-76f53d0d556d` |
+| Pages deployment           | `4d5dbc66-05ea-4437-8e3c-59fc54bd58d7` |
+| Pages deployment alias     | `https://4d5dbc66.unifetch.pages.dev`  |
+| Pages production URL       | `https://unifetch.pages.dev`           |
+| Resolver `ALLOWED_ORIGINS` | `https://unifetch.pages.dev` only      |
 
 T1D adds official Threads `/share/<token>/` expansion. The Worker sends one `GET` to `https://www.threads.com/share/<token>/` with browser-navigation headers and `redirect: 'manual'`; Threads answers `302` with a canonical post `Location` only when those headers are present. The Worker does not follow the redirect: it accepts exactly one HTTPS same-origin `/@<username>/post/<shortcode>/` destination, discards the opaque `xmt` query, and then reuses the existing exact-post parser, publisher validation, GIF embed fallback and normalizer. A malformed token fails before any request; a token that returns the generic `200` shell, a login redirect, a cross-origin destination, or a non-post path fails closed with a typed error.
 
