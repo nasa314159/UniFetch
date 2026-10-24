@@ -1,0 +1,41 @@
+{
+  "code": "synthetic-threads-video",
+  "id": "synthetic-threads-video_1002",
+  "pk": "1002",
+  "media_type": 2,
+  "user": {
+    "username": "unifetch_threads_demo",
+    "full_name": "UniFetch Threads Demo",
+    "text_post_app_is_private": false
+  },
+  "caption": {
+    "text": "Synthetic Threads video for parser tests."
+  },
+  "taken_at": 1767225601,
+  "original_width": 1080,
+  "original_height": 1350,
+  "has_audio": true,
+  "image_versions2": {
+    "candidates": [
+      {
+        "url": "https://scontent.cdninstagram.com/v/t51/synthetic-video-poster.jpg",
+        "width": 640,
+        "height": 800
+      }
+    ]
+  },
+  "video_versions": [
+    {
+      "type": 101,
+      "url": "https://scontent.cdninstagram.com/o1/v/t2/synthetic-video-101.mp4"
+    },
+    {
+      "type": 102,
+      "url": "https://scontent.cdninstagram.com/o1/v/t2/synthetic-video-102.mp4"
+    },
+    {
+      "type": 103,
+      "url": "https://scontent.cdninstagram.com/o1/v/t2/synthetic-video-103.mp4"
+    }
+  ]
+}

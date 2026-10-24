@@ -129,9 +129,7 @@ export function parseSupportedUrl(input: string): {
       : platform === 'facebook' && url.hostname !== 'fb.watch'
         ? 'www.facebook.com'
         : platform === 'threads'
-          ? url.hostname.endsWith('threads.net')
-            ? 'www.threads.net'
-            : 'www.threads.com'
+          ? 'www.threads.com'
           : url.hostname;
   url.hash = '';
   tracking.forEach((key) => url.searchParams.delete(key));

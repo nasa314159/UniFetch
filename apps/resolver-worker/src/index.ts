@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   UniFetchError,
   asUniFetchError,
+  parseSupportedUrl,
   type ResolverApiResponse,
   resolverApiResponseSchema,
 } from '@unifetch/core';
@@ -10,7 +11,12 @@ import {
   parseInstagramMediaResponse,
   normalizeInstagramMedia,
 } from '@unifetch/meta-resolver/instagram';
+import {
+  parseThreadsContentRef,
+  resolveThreadsPost,
+} from '@unifetch/meta-resolver/threads';
 import { CloudflareInstagramAcquisitionAdapter } from './acquisition';
+import { CloudflareThreadsAcquisitionAdapter } from './threads-acquisition';
 import { CloudflareMetadataRuntime, type UpstreamFetch } from './runtime';
 import { boundedBody } from './bounded-body';
 import { type DiagnosticObserver } from './diagnostics';
@@ -163,11 +169,47 @@ export function createWorker(
         if (!parsed.success)
           throw new UniFetchError(
             'INVALID_URL',
-            'Supply exactly one public Instagram URL.',
+            'Supply exactly one public Threads or Instagram URL.',
           );
         const supplied = new URL(parsed.data.url);
         if (supplied.protocol !== 'https:')
-          throw new UniFetchError('INVALID_URL', 'Use an HTTPS Instagram URL.');
+          throw new UniFetchError(
+            'INVALID_URL',
+            'Use an HTTPS Threads or Instagram URL.',
+          );
+        const { platform } = parseSupportedUrl(parsed.data.url);
+        if (platform === 'threads') {
+          const threadRef = parseThreadsContentRef(parsed.data.url);
+          const resolved = await resolveThreadsPost(
+            threadRef,
+            new CloudflareThreadsAcquisitionAdapter(fetcher, observe),
+          );
+          const body = resolverApiResponseSchema.safeParse({
+            ok: true,
+            result: {
+              post: resolved.post,
+              trace: {
+                processedLocally: false,
+                remoteProxyUsed: true,
+                metadataResolverUsed: true,
+                mediaProxyUsed: false,
+                credentialsExported: false,
+                network: resolved.trace.network,
+              },
+            },
+            kind: resolved.kind,
+            transport: {
+              metadataResolver: 'unifetch-cloudflare-worker',
+              mediaProxyUsed: false,
+            },
+          });
+          if (!body.success)
+            throw new UniFetchError(
+              'PARSER_OUTDATED',
+              'The metadata could not be normalized safely.',
+            );
+          return json(body.data);
+        }
         const ref = parseInstagramContentRef(parsed.data.url);
         if (supplied.hostname === 'm.instagram.com' && ref.kind !== 'post')
           throw new UniFetchError(

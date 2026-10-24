@@ -1,0 +1,91 @@
+{
+  "code": "synthetic-threads-carousel",
+  "id": "synthetic-threads-carousel_1003",
+  "pk": "1003",
+  "media_type": 8,
+  "user": {
+    "username": "unifetch_threads_demo",
+    "full_name": "UniFetch Threads Demo",
+    "text_post_app_is_private": false
+  },
+  "caption": {
+    "text": "Synthetic mixed Threads carousel for parser tests."
+  },
+  "taken_at": 1767225602,
+  "original_width": 1200,
+  "original_height": 1600,
+  "carousel_media": [
+    {
+      "id": "synthetic-carousel-1",
+      "media_type": 1,
+      "original_width": 1200,
+      "original_height": 1600,
+      "image_versions2": {
+        "candidates": [
+          {
+            "url": "https://scontent.cdninstagram.com/v/t51/synthetic-carousel-1.jpg",
+            "width": 1200,
+            "height": 1600
+          }
+        ]
+      }
+    },
+    {
+      "id": "synthetic-carousel-2",
+      "media_type": 2,
+      "original_width": 720,
+      "original_height": 1280,
+      "has_audio": true,
+      "image_versions2": {
+        "candidates": [
+          {
+            "url": "https://scontent.cdninstagram.com/v/t51/synthetic-carousel-2-poster.jpg",
+            "width": 720,
+            "height": 1280
+          }
+        ]
+      },
+      "video_versions": [
+        {
+          "url": "https://scontent.cdninstagram.com/o1/v/t2/synthetic-carousel-2.mp4"
+        }
+      ]
+    },
+    {
+      "id": "synthetic-carousel-3",
+      "media_type": 1,
+      "original_width": 1600,
+      "original_height": 1200,
+      "image_versions2": {
+        "candidates": [
+          {
+            "url": "https://scontent.cdninstagram.com/v/t51/synthetic-carousel-3.jpg",
+            "width": 1600,
+            "height": 1200
+          }
+        ]
+      }
+    },
+    {
+      "id": "synthetic-carousel-4",
+      "media_type": 2,
+      "original_width": 1080,
+      "original_height": 1920,
+      "has_audio": false,
+      "image_versions2": {
+        "candidates": [
+          {
+            "url": "https://scontent.cdninstagram.com/v/t51/synthetic-carousel-4-poster.jpg",
+            "width": 540,
+            "height": 960
+          }
+        ]
+      },
+      "video_versions": [
+        {
+          "url": "https://scontent.cdninstagram.com/o1/v/t2/synthetic-carousel-4.mp4"
+        }
+      ]
+    }
+  ]
+}

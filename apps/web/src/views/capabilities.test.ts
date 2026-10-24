@@ -16,7 +16,7 @@ describe('Web/PWA capability claims', () => {
 
   it('does not claim the Web/PWA itself supports Instagram Stories', () => {
     expect(homeView).toContain(
-      'The Web/PWA resolves public Post, Carousel and Reel links.',
+      'The Web/PWA resolves public Instagram Post, Carousel and Reel links,',
     );
     expect(homeView).not.toMatch(/Web\/PWA[^.]{0,120}\bstor(y|ies)\b/i);
   });
@@ -42,12 +42,20 @@ describe('Web/PWA capability claims', () => {
     expect(homeText).toContain('Desktop Chrome / Chromium only');
   });
 
-  it('keeps Facebook and Threads explicitly planned only', () => {
+  it('keeps Facebook explicitly planned only', () => {
     const facebook = homeView.indexOf('<h3>Facebook</h3>');
-    const threads = homeView.indexOf('<h3>Threads</h3>');
     expect(facebook).toBeGreaterThan(-1);
-    expect(threads).toBeGreaterThan(-1);
     expect(homeView.slice(facebook, facebook + 200)).toContain('Coming soon');
-    expect(homeView.slice(threads, threads + 200)).toContain('Coming soon');
+  });
+
+  it('describes public Threads support without claiming private or authenticated access', () => {
+    const threads = homeView.indexOf('<h3>Threads');
+    expect(threads).toBeGreaterThan(-1);
+    const card = homeView.slice(threads, threads + 240);
+    expect(card).toContain('Public Post · Video · GIF');
+    expect(card).not.toContain('Coming soon');
+    expect(homeView).not.toMatch(
+      /Threads[^.]{0,120}(?:private|login|authenticated)/i,
+    );
   });
 });

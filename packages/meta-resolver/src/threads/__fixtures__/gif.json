@@ -1,0 +1,29 @@
+{
+  "code": "synthetic-threads-gif",
+  "id": "synthetic-threads-gif_1004",
+  "pk": "1004",
+  "media_type": 19,
+  "user": {
+    "username": "unifetch_threads_demo",
+    "full_name": "UniFetch Threads Demo",
+    "text_post_app_is_private": false
+  },
+  "caption": {
+    "text": "Synthetic Threads GIF for parser tests."
+  },
+  "taken_at": 1767225603,
+  "accessibility_caption": "Synthetic animated GIF",
+  "giphy_media_info": {
+    "id": "synthetic_gif_reference",
+    "images": {
+      "fixed_height": {
+        "height": 100,
+        "size": 1,
+        "width": 160,
+        "url": "https://static.cdninstagram.com/rsrc.php/v4/synthetic-placeholder.gif",
+        "webp": null,
+        "webp_size": null
+      }
+    }
+  }
+}

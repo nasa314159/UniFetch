@@ -27,6 +27,12 @@ describe('Share payload parsing', () => {
     expect(parseSharedPayload({ url: 'https://facebook.com/post' })).toBe(
       'https://www.facebook.com/post',
     ));
+  it('normalizes a shared Threads post host and tracking query', () =>
+    expect(
+      parseSharedPayload({
+        url: 'https://threads.net/@demo/post/synthetic-code?igsh=test',
+      }),
+    ).toBe('https://www.threads.com/@demo/post/synthetic-code'));
   it('rejects unsupported URLs', () =>
     expect(
       parseSharedPayload({ url: 'https://example.com', text: 'hello' }),

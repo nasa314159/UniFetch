@@ -31,7 +31,7 @@ export const resolverApiResponseSchema = z.discriminatedUnion('ok', [
         .object({
           post: z
             .object({
-              platform: z.literal('instagram'),
+              platform: z.enum(['instagram', 'threads']),
               id: z.string().optional(),
               canonicalUrl: safeUrl,
               author: z

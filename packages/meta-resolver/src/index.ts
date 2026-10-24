@@ -11,10 +11,14 @@ import {
   type InstagramResolutionResult,
 } from './instagram/resolver';
 import type { InstagramAcquisitionAdapter } from './instagram/acquisition';
+import type { ThreadsResolutionResult } from './threads/resolver';
 export type {
   InstagramResolutionResult,
   ResolutionSource,
 } from './instagram/resolver';
+export type { ThreadsResolutionResult, ThreadsResolvedKind } from './threads';
+export type WebResolutionResult =
+  InstagramResolutionResult | ThreadsResolutionResult;
 import image from '../../../fixtures/instagram/image.json';
 import carousel from '../../../fixtures/instagram/carousel.json';
 import reel from '../../../fixtures/instagram/reel.json';

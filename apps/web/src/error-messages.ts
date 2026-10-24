@@ -1,24 +1,24 @@
 import type { UniFetchError } from '@unifetch/core';
 const wording = {
   LOGIN_REQUIRED: [
-    'This post requires Instagram sign-in',
-    "Instagram does not make this content available to anonymous requests. UniFetch's web resolver does not receive your Instagram credentials.",
+    'This post requires sign-in',
+    'The platform does not make this content available to anonymous requests. UniFetch’s web resolver does not receive your credentials.',
   ],
   CONTENT_UNAVAILABLE: [
     "This post isn't available",
-    'Instagram did not make this content available to the resolver.',
+    'The platform did not make this content available to the resolver.',
   ],
   RATE_LIMITED: [
-    'Instagram temporarily limited this request',
+    'The platform temporarily limited this request',
     'Try again later.',
   ],
   PARSER_OUTDATED: [
-    'Instagram changed this response',
+    'The platform changed this response',
     'UniFetch received media data it does not currently understand.',
   ],
   GRAPHQL_EXECUTION_ERROR: [
-    "Instagram couldn't return this post",
-    'Instagram returned an application-level error for this request.',
+    "The platform couldn't return this post",
+    'The platform returned an application-level error for this request.',
   ],
 } as const;
 export function resolutionErrorTitle(error: UniFetchError): string {

@@ -29,6 +29,45 @@ describe('Rendered resolution privacy', () => {
     expect(html).not.toContain('Processed locally');
     expect(html).not.toContain('No remote UniFetch proxy');
   });
+  it('labels Threads and GIF media without Instagram-specific copy', async () => {
+    const result = {
+      post: {
+        platform: 'threads' as const,
+        id: 'synthetic-threads-gif',
+        canonicalUrl:
+          'https://www.threads.com/@unifetch_threads_demo/post/synthetic-threads-gif/',
+        author: { username: 'unifetch_threads_demo' },
+        caption: 'Synthetic animated GIF.',
+        assets: [
+          {
+            id: 'synthetic-threads-gif_01',
+            type: 'image' as const,
+            url: 'https://media.giphy.com/media/synthetic/200.gif',
+            mimeType: 'image/gif',
+            suggestedFilename: 'threads_synthetic-threads-gif.gif',
+          },
+        ],
+      },
+      trace: {
+        processedLocally: false,
+        remoteProxyUsed: true,
+        metadataResolverUsed: true,
+        mediaProxyUsed: false,
+        credentialsExported: false,
+        network: [
+          { origin: 'https://www.threads.com', purpose: 'metadata' as const },
+        ],
+      },
+      source: 'worker' as const,
+      kind: 'image' as const,
+    };
+    const html = await renderToString(createSSRApp(ResultPanel, { result }));
+    expect(html).toContain('Threads · GIF');
+    expect(html).toContain('No Threads credentials uploaded');
+    expect(html).toContain('Original GIF');
+    expect(html).not.toContain('No Instagram credentials uploaded');
+  });
+
   it('retains the accurate local demo source and privacy', async () => {
     const result = await createWebResolver().resolve(
       'https://instagram.com/p/unifetch-demo-image/',

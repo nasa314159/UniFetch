@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia';
 import { ref, shallowRef } from 'vue';
 import { asUniFetchError, type UniFetchError } from '@unifetch/core';
-import { type InstagramResolutionResult } from '@unifetch/meta-resolver';
+import { type WebResolutionResult } from '@unifetch/meta-resolver';
 import { createWebResolver } from '../resolver-client';
 const resolver = createWebResolver(import.meta.env.VITE_UNIFETCH_RESOLVER_URL);
 export const useResolutionStore = defineStore('resolution', () => {
   const state = ref<'IDLE' | 'RESOLVING' | 'RESOLVED' | 'ERROR'>('IDLE');
-  const result = shallowRef<InstagramResolutionResult | null>(null);
+  const result = shallowRef<WebResolutionResult | null>(null);
   const error = shallowRef<UniFetchError | null>(null);
   async function resolve(input: string) {
     if (state.value === 'RESOLVING') return;

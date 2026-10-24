@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, shallowRef, onBeforeUnmount, watch } from 'vue';
 import { asUniFetchError } from '@unifetch/core';
-import type { InstagramResolutionResult } from '@unifetch/meta-resolver';
+import type { WebResolutionResult } from '@unifetch/meta-resolver';
 import {
   createDownloadBatch,
   selectDownloadEntries,
@@ -12,7 +12,7 @@ import {
 } from '@unifetch/downloader';
 import { WebRuntime } from '@unifetch/runtime-web';
 import SaveQueue from './SaveQueue.vue';
-const props = defineProps<{ result: InstagramResolutionResult }>();
+const props = defineProps<{ result: WebResolutionResult }>();
 const selected = ref(props.result.post.assets.map((asset) => asset.id));
 const downloading = ref(false);
 const notice = ref('');
@@ -57,14 +57,29 @@ function originalLink(input: string): string | undefined {
     return undefined;
   }
 }
-const contentType = computed(() =>
-  props.result.kind === 'carousel'
-    ? 'Carousel'
-    : props.result.kind === 'video' &&
-        props.result.post.canonicalUrl.includes('/reel/')
-      ? 'Reel'
-      : 'Post',
+const platformLabel = computed(
+  () =>
+    ({
+      instagram: 'Instagram',
+      threads: 'Threads',
+      facebook: 'Facebook',
+    })[props.result.post.platform] ?? 'Media',
 );
+const isGif = computed(() =>
+  props.result.post.assets.some(
+    (asset) => asset.mimeType?.toLowerCase() === 'image/gif',
+  ),
+);
+const contentType = computed(() => {
+  if (props.result.kind === 'carousel') return 'Carousel';
+  if (isGif.value) return 'GIF';
+  if (props.result.post.platform === 'threads')
+    return props.result.kind === 'video' ? 'Video' : 'Post';
+  return props.result.kind === 'video' &&
+    props.result.post.canonicalUrl.includes('/reel/')
+    ? 'Reel'
+    : 'Post';
+});
 async function download(ids: string[]) {
   clearBatch();
   const currentGeneration = generation;
@@ -120,7 +135,7 @@ async function download(ids: string[]) {
     <div class="result-heading">
       <span class="resolved-label"
         ><span aria-hidden="true">✓</span> Ready to save</span
-      ><span class="type-label">Instagram · {{ contentType }}</span>
+      ><span class="type-label">{{ platformLabel }} · {{ contentType }}</span>
     </div>
     <p class="source-label">
       Resolution source:
@@ -129,7 +144,7 @@ async function download(ids: string[]) {
           ? 'Demo fixture'
           : result.source === 'worker'
             ? 'UniFetch Resolver'
-            : 'Live Instagram'
+            : `Live ${platformLabel}`
       }}
     </p>
     <div v-if="result.post.author" class="author">
@@ -160,7 +175,7 @@ async function download(ids: string[]) {
           <img
             v-if="asset.type === 'image'"
             :src="asset.url"
-            :alt="`${result.source === 'fixture' ? 'Original demo artwork' : 'Instagram image'} ${index + 1}`"
+            :alt="`${result.source === 'fixture' ? 'Original demo artwork' : `${platformLabel} ${asset.mimeType === 'image/gif' ? 'GIF' : 'image'}`} ${index + 1}`"
             loading="lazy"
           /><video
             v-else-if="asset.type === 'video'"
@@ -169,7 +184,7 @@ async function download(ids: string[]) {
             controls
             playsinline
             preload="none"
-            :aria-label="`${result.source === 'fixture' ? 'Demo video' : 'Instagram video'} ${index + 1}`"
+            :aria-label="`${result.source === 'fixture' ? 'Demo video' : `${platformLabel} video`} ${index + 1}`"
           ></video
           ><audio v-else :src="asset.url" controls preload="none"></audio>
         </div>
@@ -179,7 +194,11 @@ async function download(ids: string[]) {
               >Asset {{ index + 1 }}</span
             ></label
           ><strong v-else>{{
-            asset.type === 'image' ? 'Original image' : 'Original video'
+            asset.type === 'image'
+              ? asset.mimeType === 'image/gif'
+                ? 'Original GIF'
+                : 'Original image'
+              : 'Original video'
           }}</strong
           ><span
             >{{
@@ -254,7 +273,7 @@ async function download(ids: string[]) {
         <ul>
           <li>✓ User initiated</li>
           <li>○ Metadata resolved by UniFetch Resolver</li>
-          <li>✓ No Instagram credentials uploaded</li>
+          <li>✓ No {{ platformLabel }} credentials uploaded</li>
         </ul>
         <strong>Media</strong>
         <ul>
@@ -293,8 +312,9 @@ async function download(ids: string[]) {
         </li>
       </ul>
       <p v-else-if="result.source === 'fixture'">
-        None. Fixture metadata is bundled locally. No real Instagram request
-        occurred. Previews and downloads use local files served by this app.
+        None. Fixture metadata is bundled locally. No real
+        {{ platformLabel }} request occurred. Previews and downloads use local
+        files served by this app.
       </p>
       <p v-else>No network origins were reported by the acquisition runtime.</p>
     </details>

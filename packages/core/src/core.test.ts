@@ -31,10 +31,11 @@ describe('URL parsing and normalization', () => {
   );
   it.each(['threads.net', 'www.threads.net', 'threads.com', 'www.threads.com'])(
     'detects Threads host %s',
-    (host) =>
-      expect(parseSupportedUrl(`https://${host}/example`).platform).toBe(
-        'threads',
-      ),
+    (host) => {
+      const result = parseSupportedUrl(`https://${host}/example`);
+      expect(result.platform).toBe('threads');
+      expect(result.url.hostname).toBe('www.threads.com');
+    },
   );
   it.each([
     'not a url',

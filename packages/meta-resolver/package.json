@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./instagram": "./src/instagram/index.ts"
+    "./instagram": "./src/instagram/index.ts",
+    "./threads": "./src/threads/index.ts"
   },
   "dependencies": {
     "@unifetch/core": "workspace:*"

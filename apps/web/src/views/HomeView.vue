@@ -69,7 +69,7 @@ watch(
   </section>
   <section class="input-card" aria-label="Resolve media">
     <div class="card-top">
-      <label for="source-url">Paste an Instagram URL</label
+      <label for="source-url">Paste an Instagram or Threads URL</label
       ><span class="fixture-badge">PREVIEW</span>
     </div>
     <form @submit.prevent="submit">
@@ -82,7 +82,7 @@ watch(
           inputmode="url"
           autocomplete="off"
           spellcheck="false"
-          placeholder="https://www.instagram.com/p/…"
+          placeholder="https://www.instagram.com/p/… or https://www.threads.com/@…/post/…"
           :disabled="store.state === 'RESOLVING'"
           required
         />
@@ -102,8 +102,8 @@ watch(
       </button>
     </form>
     <p class="input-note">
-      <span aria-hidden="true">♧</span> No login, cookies, or credentials needed
-      for this demo.
+      <span aria-hidden="true">♧</span> No login, cookies, or credentials
+      needed.
     </p>
     <div class="demo-row">
       <span>Try a demo</span
@@ -162,12 +162,13 @@ watch(
           <p>Coming soon</p>
         </div>
       </article>
-      <article class="platform">
+      <article class="platform active">
         <span class="platform-icon" aria-hidden="true">@</span>
         <div>
-          <h3>Threads</h3>
-          <p>Coming soon</p>
+          <h3>Threads <span class="status-dot"></span></h3>
+          <p>Public Post · Video · GIF</p>
         </div>
+        <span class="platform-status">Public</span>
       </article>
     </div>
   </section>
@@ -178,10 +179,11 @@ watch(
         Need authenticated Instagram downloads?
       </h2>
       <p>
-        The Web/PWA resolves public Post, Carousel and Reel links. The UniFetch
-        Browser Extension uses your existing Instagram browser session for
-        authenticated Post, Carousel and Reel downloads, plus Stories only when
-        the link already contains an explicit Story ID.
+        The Web/PWA resolves public Instagram Post, Carousel and Reel links,
+        plus public Threads posts and GIFs. The UniFetch Browser Extension uses
+        your existing Instagram browser session for authenticated Post, Carousel
+        and Reel downloads, plus Stories only when the link already contains an
+        explicit Story ID.
       </p>
       <p class="extension-note">
         Manually installed from GitHub Releases · Not in the Chrome Web Store ·
@@ -198,9 +200,9 @@ watch(
       <h2>A little more transparency.</h2>
       <p>
         Demo buttons use fictional posts and original local media. Other public
-        post and Reel URLs are sent to the UniFetch Resolver for metadata. Media
-        files are not proxied through UniFetch, and no resolution history is
-        stored.
+        Instagram post and Reel URLs, and public Threads post URLs, are sent to
+        the UniFetch Resolver for metadata. Media files are not proxied through
+        UniFetch, and no resolution history is stored.
       </p>
     </div>
   </aside>
