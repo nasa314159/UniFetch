@@ -1,10 +1,10 @@
 # Privacy model
 
-UniFetch's local-first goal keeps user choice explicit and media delivery direct. M5 does **not** claim all processing is local: one chosen public Instagram URL is sent to the configured open-source UniFetch Resolver for metadata. The Resolver receives upstream metadata, returns normalized data and direct source URLs, and does not proxy image/video bodies.
+UniFetch's local-first goal keeps user choice explicit and media delivery direct. This is **not** fully local processing: one chosen public Instagram or Threads URL is sent to the configured open-source UniFetch Resolver for metadata. The Resolver receives upstream metadata, returns normalized data and direct source URLs, and does not proxy image/video/GIF bodies.
 
 ## Resolver trust boundary
 
-Input is exactly one public content URL. Outbound requests are only the existing fixed Instagram bootstrap and Polaris metadata POST. Output is normalized post metadata/direct asset URLs and an accurate trace. The application never stores URL history, usernames, captions, cookies, response history or asset/download history.
+Input is exactly one public content URL. Instagram outbound requests are only the existing fixed bootstrap and Polaris metadata POST. Threads outbound requests are only the constructed canonical post page and, when a GIF post exposes only a placeholder, the exact post's public embed page. Output is normalized post metadata/direct asset URLs and an accurate trace. The application never stores URL history, usernames, captions, cookies, response history or asset/download history.
 
 No Instagram credentials or UniFetch account are required. User cookies, passwords, tokens and browser sessions cannot be submitted through the strict API schema; Cookie/Authorization headers are rejected. Upstream cookie/CSRF state may be obtained anonymously by the Worker, used in memory for one request and discarded. It is never returned to the browser, logged or persisted. No session snapshot escapes the runtime contract.
 
@@ -21,6 +21,8 @@ Story identity is validated before exposure: a response publisher that differs f
 ## Trace semantics
 
 Fixtures resolve locally without upstream requests. Worker metadata uses processedLocally=false, metadataResolverUsed=true, mediaProxyUsed=false and credentialsExported=false. Compatibility field remoteProxyUsed=true means a remote metadata intermediary was used. It never means media bytes were relayed. The UI distinguishes these stages and records origins only; direct preview/download requests happen afterward.
+
+Threads GIF posts may require a second public HTML request to the exact post's embed page. The Worker extracts the direct Giphy GIF URL from the embed's image-proxy parameter and returns that URL; it does not fetch the GIF. The browser then requests the GIF directly from the Giphy CDN. The trace records the Threads metadata origin only, not the subsequent media request. Animated GIF bytes are preserved; they are never normalized to a static JPEG.
 
 ## Client storage and caching
 

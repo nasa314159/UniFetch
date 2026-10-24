@@ -585,7 +585,47 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 
 ---
 
-## 16. 相關文件
+## 16. T1B Threads 公開貼文實作現況
+
+T1B 已在 `feat/threads-public-media` 分支完成，尚未合併 `main`、尚未部署正式 Worker。
+
+### 16.1 已實作
+
+- 新增 `packages/meta-resolver/src/threads/`：content-ref、SSR/Relay parser、GIF embed fallback parser、normalizer、resolver contract、sanitized fixtures。
+- 新增 `apps/resolver-worker/src/threads-acquisition.ts`：只抓取由已驗證 reference 建構的 canonical Threads URL；`redirect: 'manual'`、`credentials: 'omit'`、10 秒 timeout、4 MiB HTML bound；不抓媒體 bytes。
+- Worker 依 `parseSupportedUrl` 分派 Instagram / Threads；Instagram 行為未改。
+- `resolverApiResponseSchema` 允許 `platform: 'threads'`。
+- Web client 將 canonical Threads URL 送至 Resolver；Result UI 顯示實際平台、Video/GIF/Carousel，隱私文案不再硬寫 Instagram。
+- Downloader 對 `image/gif` 保留原始 bytes 與動畫，不再轉成 JPEG；Instagram 圖片正規化行為不變。
+- `HomeView` 將 Threads 標為 public capability；Facebook 仍為 planned；Extension 未加入 Threads host permission。
+
+### 16.2 已驗證
+
+- 公開 Threads single image、20-image carousel、native video、video carousel child、GIF。
+- 本地 `workerd` 與 `wrangler dev --remote` Cloudflare edge 都成功回傳 SSR metadata。
+- CDN 回應 JPEG/MP4/GIF 且允許 CORS；GIF 為 26-frame animated GIF。
+- 實際瀏覽器下載成功：JPEG、MP4、174,276-byte animated GIF。
+- Owner mismatch、invalid code、`/t/`、profile URL 都在 Worker 端 typed fail-closed。
+- `pnpm test`、`pnpm lint`、`pnpm build`、`pnpm format:check` 與 `git diff --check` 需在最終 commit 前全部通過。
+
+### 16.3 尚未做
+
+- 尚未正式部署 `unifetch-resolver` 或 Pages；正式推廣需先完成 production edge smoke test（同樣確認導航 headers 與 SSR）。
+- 未實作 Threads extension；未支援 `/t/` 短連結、profiles、search、share、private/login、quoted/reposted substitution。
+- 未支援 audio-only、HLS/DASH-only video、transcoding、crawling/bulk。
+- Threads SSR/Relay 與 GIF embed 都是平台內部格式；未來變動時應 fail closed，不要加猜測 fallback。
+
+### 16.4 安全邊界
+
+- 只處理使用者明確提供的一個 canonical public post URL。
+- Worker 不轉發 Cookie/Authorization，不抓媒體，不代理媒體。
+- Parser 同時要求 shortcode 與 publisher username；不遍歷 related/quoted/replies。
+- GIF fallback 只接受 exact-post embed 內、HTTPS、`*.giphy.com/*.gif` 的 direct URL；placeholder/OG 不得當成 GIF。
+- 無 persistent history、cache、KV/R2/D1 或 analytics。
+
+---
+
+## 17. 相關文件
 
 - `README.md` — 產品與快速開始
 - `docs/supported-content.md` — 各平台／runtime 能力矩陣

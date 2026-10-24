@@ -2,11 +2,11 @@
 
 Save media you can already access. Direct media. Transparently.
 
-UniFetch is an open-source Vue 3 web interface and installable PWA that processes one URL explicitly supplied by the user. Demo fixtures work locally. Public Instagram Post, Carousel and Reel metadata can be resolved by the open-source UniFetch Resolver within the tested public content scope. UniFetch does not proxy media files through its servers.
+UniFetch is an open-source Vue 3 web interface and installable PWA that processes one URL explicitly supplied by the user. Demo fixtures work locally. Public Instagram Post, Carousel and Reel metadata, and public Threads post media (images, image carousels, native video and GIF-like animation), can be resolved by the open-source UniFetch Resolver within the tested public content scope. UniFetch does not proxy media files through its servers.
 
 A separate Chromium MV3 extension performs authenticated Post, Carousel, Reel and explicit-id Story acquisition inside the user's own browser session. The extension is distributed as a versioned, checksum-verified ZIP on GitHub Releases and loaded manually as an unpacked extension. It is not listed in the Chrome Web Store and is not part of the Web/PWA deployment; its authenticated capabilities are not available at `https://unifetch.pages.dev`. The installation guide is at [https://unifetch.pages.dev/extension](https://unifetch.pages.dev/extension).
 
-M5 adds a metadata-only Cloudflare Worker using the existing centralized Polaris profile. It requires no Instagram credentials or user account and stores no resolution history. Returned assets are direct source URLs, not relayed files. The profile is unstable; typed failures do not imply support for every public post. Live success is not guaranteed.
+M5 adds a metadata-only Cloudflare Worker using the existing centralized Polaris profile. T1B adds a separate Threads adapter that reads one public Threads permalink's server-rendered metadata and, when needed for a GIF, the exact post's public embed page. Neither path requires an Instagram/Threads account, and neither stores resolution history. Returned assets are direct source URLs, not relayed files. Both platform profiles are unstable; typed failures do not imply support for every public post. Live success is not guaranteed.
 
 ## Demo
 
@@ -40,7 +40,7 @@ pnpm format:check
 pnpm --filter @unifetch/web preview
 ```
 
-Build typechecks the web app/packages, produces `apps/web/dist`, typechecks/bundles the Worker through a Wrangler dry run, and builds the unpacked Chromium extension into `apps/extension/dist`. Tests use mocks and sanitized fixtures, never a Cloudflare account or live Instagram. Worker output and local Wrangler state are ignored.
+Build typechecks the web app/packages, produces `apps/web/dist`, typechecks/bundles the Worker through a Wrangler dry run, and builds the unpacked Chromium extension into `apps/extension/dist`. Automated tests use mocks and sanitized fixtures; they do not require a Cloudflare account or live platform content. Manual live validation is separate and transient. Worker output and local Wrangler state are ignored.
 
 Extension release packaging is deterministic and only runs from a clean tree:
 
@@ -58,7 +58,7 @@ The archive contains one top-level `unifetch-chromium-extension-vX.Y.Z/` directo
 ## Architecture
 
 - `@unifetch/core`: domain types, errors, URL validation, runtime/resolver contracts and narrow Zod API schema.
-- `@unifetch/meta-resolver`: deterministic demo, Instagram references, existing single acquisition profile, defensive parser and normalizer. Transport belongs to runtime adapters.
+- `@unifetch/meta-resolver`: deterministic demo, Instagram references and acquisition profile, a separate Threads exact-post parser/normalizer, defensive GIF embed fallback, and shared defensive parsing. Transport belongs to runtime adapters.
 - `@unifetch/runtime-web`: browser transport and browser-native downloads.
 - `@unifetch/downloader`: explicit downloads, sequential for multiple assets.
 - `@unifetch/share-target`: supported HTTP(S) link extraction, URL → text → title.
@@ -66,7 +66,7 @@ The archive contains one top-level `unifetch-chromium-extension-vX.Y.Z/` directo
 - `@unifetch/resolver-worker`: Cloudflare runtime and metadata-only `POST /api/resolve` API.
 - `@unifetch/extension`: Chromium MV3 extension for authenticated Post, Carousel, Reel and explicit-id Story downloads inside the user's browser, distributed as a GitHub Releases ZIP.
 
-PWA → one public Instagram URL → Resolver → fixed Instagram bootstrap/metadata requests → normalized metadata and direct URLs → PWA → direct source/CDN asset request. See [architecture](docs/architecture.md).
+PWA → one public Instagram or Threads URL → Resolver → platform-specific public metadata requests → normalized metadata and direct URLs → PWA → direct source/CDN asset request. See [architecture](docs/architecture.md).
 
 ## Extension (GitHub Releases, unpacked)
 
@@ -103,7 +103,7 @@ PWA installation and OS share-target support depend on browser/OS. GET share dat
 
 M4A established offline parsing/normalization; M4B added the supplied acquisition profile. M4C integrated the direct pipeline. Public Image, Carousel and Reel probes each returned `BROWSER_RESTRICTION` in the tested browser environment. **M4D was intentionally skipped** because M4C had already established the runtime decision. M5 supplies remote metadata resolution while keeping media direct. M8 adds the local authenticated extension described above. M9A adds deterministic GitHub Releases packaging and the public `/extension` installation flow.
 
-Web/PWA: Instagram Post, Carousel and Reel only. Stories, Facebook and Threads are not available on the Web/PWA. The extension adds authenticated Instagram Post, Carousel, Reel and explicit-id Story support; username-only Stories remain unsupported and fail closed. M8B–M8D Story page-state/current-id/visible-media experiments were moved to `research/m8b-m8d-instagram-story` and are not part of the stable release. No alternate endpoint discovery, crawling, bulk enumeration, private-account access, login, ZIP, audio extraction or video transcoding is implemented. Direct media preview/download remains subject to source/CDN browser restrictions; no proxy workaround exists.
+Web/PWA: public Instagram Post, Carousel and Reel; public Threads single posts, image carousels, native video and GIF-like animation. Threads profiles, discovery pages, `/t/` short links, share pages, quoted/reposted substitution and private/login content are refused. The extension adds authenticated Instagram Post, Carousel, Reel and explicit-id Story support; Threads is not implemented in the extension. Username-only Stories remain unsupported and fail closed. M8B–M8D Story page-state/current-id/visible-media experiments were moved to `research/m8b-m8d-instagram-story` and are not part of the stable release. No alternate endpoint discovery, crawling, bulk enumeration, private-account access, login, ZIP, audio extraction or video transcoding is implemented. Direct media preview/download remains subject to source/CDN browser restrictions; no proxy workaround exists.
 
 The development-only `/dev/instagram-probe` form manually accepts exactly three public URLs, clears them on submission and shows only typed status or successful counts/types. It is excluded from production builds and stores/logs no inputs or outcomes.
 
@@ -111,4 +111,6 @@ MIT licensed. See [supported content](docs/supported-content.md).
 
 M5–M5.5 local validation established successful metadata resolution for the tested public Instagram image post, carousel and Reel, direct image preview, direct image Blob download and Open original. The Cloudflare Resolver is the current Web/PWA compatibility runtime for metadata; media is fetched directly by the user’s browser/device. These tests do not establish support for all public content or live video downloads. No public identifiers or raw response payloads were retained in source, fixtures or documentation.
 
-M5.4 local probes established successful public image, carousel and Reel metadata resolution and direct image preview. Direct downloads depend on browser/CDN cross-origin rules: still images read the direct source as a Blob when CORS permits and are normalized client-side to JPEG (white background for transparency). JPEG sources keep their original bytes; conversion failures retain the original format and report it. Videos are not transcoded. Filenames use username, a short caption and the original media index. Open original is available separately and does not imply a saved file. Media bytes never pass through UniFetch Resolver; UniFetch does not relay media to bypass these rules.
+M5.4 local probes established successful public image, carousel and Reel metadata resolution and direct image preview. Direct downloads depend on browser/CDN cross-origin rules: still images read the direct source as a Blob when CORS permits and are normalized client-side to JPEG (white background for transparency). JPEG sources keep their original bytes; conversion failures retain the original format and report it. Videos are not transcoded. GIF sources keep their original animated GIF bytes; GIFs are never re-encoded to JPEG. Filenames use username, a short caption and the original media index. Open original is available separately and does not imply a saved file. Media bytes never pass through UniFetch Resolver; UniFetch does not relay media to bypass these rules.
+
+T1B validation: public Threads image, image carousel, native video and GIF posts resolved through the local Worker and through a `wrangler dev --remote` Cloudflare edge session. The media CDN returned CORS-readable JPEG, MP4 and animated GIF resources. Actual browser downloads produced a JPEG image, an MP4 video and a 26-frame animated GIF; media bytes did not pass through the Worker. These are tested samples, not universal platform guarantees. No live post IDs, media URLs or raw payloads are retained in the repository.

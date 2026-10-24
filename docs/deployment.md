@@ -62,7 +62,9 @@ Pages serves the SPA fallback when no top-level `404.html` exists. Verify `/`, `
 
 Check Worker OPTIONS preflight from the exact Pages origin, malformed/unsupported input, and the inaccessible media/development routes. Responses must remain `Cache-Control: no-store` with no credential-bearing CORS headers.
 
-In a production browser check all three fixtures, explicitly supplied public Instagram content, direct preview, Blob download, Open original and the privacy panel. Check share query replacement, service-worker registration and the GET `share_target` manifest entry. Full mobile share-sheet testing remains human device QA.
+Before enabling Threads in production, verify that the deployed Cloudflare edge preserves the navigation-related request headers needed for Threads SSR. A `wrangler dev --remote` run against a bounded set of public posts is the minimum staging check; if the edge returns the JavaScript shell instead of SSR metadata, keep Threads disabled and do not add a proxy or weaken parser requirements. Check one public Threads image, carousel, native video and GIF post, plus canonical owner/code rejection and `/t/` rejection. Do not log or retain live post IDs, media URLs, authors or captions.
+
+In a production browser check all three fixtures, explicitly supplied public Instagram content, direct preview, Blob download, Open original and the privacy panel. For Threads, check a public image, video and GIF, including GIF animation preservation and the absence of a static-preview substitution. Check share query replacement, service-worker registration and the GET `share_target` manifest entry. Full mobile share-sheet testing remains human device QA.
 
 Use live content only transiently; never record its page URL, media URL, payload, author or caption in project files or diagnostic logs. Application storage and service-worker caches must not retain resolved content. Browser history, source HTTP caches and provider infrastructure logs remain outside app control.
 

@@ -2,16 +2,21 @@
 
 Two runtimes have different capabilities. The tiers below are deliberately separate.
 
-| Platform/content                    | Web/PWA (`unifetch.pages.dev`)                | Chromium extension (GitHub Releases ZIP, unpacked)                                    |
-| ----------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------- |
-| Instagram Post (single image)       | Public metadata via Resolver (tested samples) | Authenticated resolution + download (previously physically verified)                  |
-| Instagram Carousel                  | Public metadata via Resolver (tested samples) | Authenticated multi-asset resolution + sequential download (previously verified)      |
-| Instagram Reel                      | Public metadata via Resolver (tested samples) | Authenticated resolution + download (previously verified)                             |
-| Instagram Story — explicit media id | Not supported                                 | One image or video per explicit `/stories/<username>/<id>/` URL (previously verified) |
-| Instagram Story — username only     | Not supported                                 | **Unsupported — fails closed before any request**                                     |
-| Instagram Highlights                | Not supported                                 | Not supported                                                                         |
-| Facebook                            | Planned only                                  | Not implemented                                                                       |
-| Threads                             | Planned only                                  | Not implemented                                                                       |
+| Platform/content                          | Web/PWA (`unifetch.pages.dev`)                               | Chromium extension (GitHub Releases ZIP, unpacked)                                    |
+| ----------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------- |
+| Instagram Post (single image)             | Public metadata via Resolver (tested samples)                | Authenticated resolution + download (previously physically verified)                  |
+| Instagram Carousel                        | Public metadata via Resolver (tested samples)                | Authenticated multi-asset resolution + sequential download (previously verified)      |
+| Instagram Reel                            | Public metadata via Resolver (tested samples)                | Authenticated resolution + download (previously verified)                             |
+| Instagram Story — explicit media id       | Not supported                                                | One image or video per explicit `/stories/<username>/<id>/` URL (previously verified) |
+| Instagram Story — username only           | Not supported                                                | **Unsupported — fails closed before any request**                                     |
+| Instagram Highlights                      | Not supported                                                | Not supported                                                                         |
+| Facebook                                  | Planned only                                                 | Not implemented                                                                       |
+| Threads Post — single image               | Public metadata via Resolver (tested samples)                | Not implemented                                                                       |
+| Threads Post — image carousel             | Public metadata via Resolver (tested samples)                | Not implemented                                                                       |
+| Threads Post — native video               | Public metadata via Resolver (tested samples)                | Not implemented                                                                       |
+| Threads Post — mixed image/video carousel | Public metadata via Resolver (mixed model; tested samples)   | Not implemented                                                                       |
+| Threads Post — GIF-like animation         | Public metadata + exact-post embed fallback (tested samples) | Not implemented                                                                       |
+| Threads Post — audio-only                 | Deferred / not supported                                     | Not implemented                                                                       |
 
 Demo IDs are unifetch-demo-image, unifetch-demo-carousel and unifetch-demo-reel. Authors/captions are fictional; artwork/clips were generated locally. Demo previews and downloads remain functional without a metadata Resolver.
 
@@ -23,6 +28,20 @@ The M4C direct-browser feasibility probes for public Image, Carousel and Reel al
 
 Carousel downloads are individual sequential requests after selection/Download all. No media proxy/cache, ZIP, transcoding, audio extraction, crawling or bulk discovery is included.
 
+### Threads on the Web/PWA
+
+The Worker accepts only one canonical public Threads post permalink:
+
+- `https://www.threads.com/@<username>/post/<shortcode>/`
+- verified aliases `threads.net`, `www.threads.net` and `threads.com` are normalized to `www.threads.com`
+- trailing slash, one decorative slug segment and `/media` are accepted and canonicalized to the post
+
+Profiles, replies/profile tabs, search/discovery, `/t/` short links, `/share/` links, embed URLs as user input, compose intents, quoted/reposted substitution and private/login content are refused. The Worker fetches only the constructed canonical URL, with redirects disabled, credentials omitted, a 4 MiB HTML bound and a 10-second timeout. It never fetches or proxies media bytes.
+
+The Threads parser requires the response's root `data.media.code` to match the requested shortcode and its `user.username` to match the requested publisher. Assets preserve source order. Direct JPEG and MP4 CDN URLs are returned; video poster images are never substituted for video. GIF-like posts (`media_type: 19`) initially expose a static placeholder, so the Worker reads the exact post's public embed page, verifies the same post and publisher, and extracts the direct Giphy GIF URL from the embed's image proxy parameter. The placeholder and Open Graph image are never treated as the GIF. The browser downloads the direct GIF bytes and keeps the animated GIF format.
+
+Threads media was live-validated for public single image, 20-image carousel, native video, video carousel child and GIF post through both local `workerd` and a `wrangler dev --remote` Cloudflare edge session. Actual browser downloads produced JPEG, MP4 and a 26-frame animated GIF. These are tested samples; no universal coverage or private-content support is claimed.
+
 ## Chromium extension
 
 The extension is an MV3 build distributed as a versioned GitHub Releases ZIP and loaded manually as an unpacked extension. It is not listed in the Chrome Web Store, requires Developer mode and does not auto-update; the install guide is `https://unifetch.pages.dev/extension`. It uses the user's existing Instagram browser session through normal credentialed requests; it never reads or exports cookies, tokens or session storage.
@@ -32,6 +51,7 @@ The extension is an MV3 build distributed as a versioned GitHub Releases ZIP and
 - **Owner validation:** the response publisher must match the username in the Story route. A mismatch is rejected as `UNSUPPORTED_CONTENT`; no asset URL is returned to the popup and nothing is downloaded.
 - **Username-only Stories:** `/stories/<username>/` is refused before any request. There is no DOM, React, fiber, history-state or visible-media fallback in the stable release.
 - **Unsupported Story cases:** Highlights, username-only URLs, multi-item responses and MSE/blob-only video playback are not downloaded.
+- **Threads:** Not implemented in the extension and no Threads host permission is requested. Threads is a public Web/PWA resolver capability only.
 
 Previously performed physical validation (not repeated during the stabilization session) covered authenticated Post/Carousel/Reel resolution/download and explicit-id Story image/video downloads. Automated tests cover identity rejection, explicit-id success and username-only fail-closed behavior; they do not prove live Instagram behavior.
 
@@ -44,4 +64,4 @@ Previously performed physical validation (not repeated during the stabilization 
 - **Deferred:** intentionally not implemented now.
 - **Unsupported:** refused by design.
 
-M5–M5.5 local validation established successful metadata resolution for the tested public Instagram image post, carousel and Reel, direct image preview, direct image Blob download and Open original. The Cloudflare Resolver is the current Web/PWA compatibility runtime for metadata; media is fetched directly by the user’s browser/device. These tests do not establish support for all public content or live video downloads. No public identifiers or raw response payloads were retained in source, fixtures or documentation.
+M5–M5.5 local validation established successful metadata resolution for the tested public Instagram image post, carousel and Reel, direct image preview, direct image Blob download and Open original. T1B added live-tested public Threads image, carousel, native video and GIF support through the same metadata-only Resolver and direct browser downloader. The Cloudflare Resolver is the current Web/PWA compatibility runtime for metadata; media is fetched directly by the user’s browser/device. These tests do not establish support for all public content. No public identifiers or raw response payloads were retained in source, fixtures or documentation.
