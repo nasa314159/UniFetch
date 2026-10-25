@@ -809,14 +809,15 @@ Instagram extension 既有檔名為 `<username>_<caption-snippet>[_NN].<ext>`（
 | Asset                              | `unifetch-chromium-extension-v0.3.0.zip`                               |
 | Size                               | 262,197 bytes                                                          |
 | SHA-256                            | `7570584c9f99b07d1054ea6c1b8046c8e00405a603351e6df04a0d4ff69f32ef`     |
-| Pages deployment                   | `a2337a62-f92d-4299-b11d-b7a673dd42d2`                                 |
-| Pages alias                        | `https://a2337a62.unifetch.pages.dev`（導向 canonical）                |
+| Pages deployment                   | `1e75037d-b3c6-49fb-94df-192baaf2044c`                                 |
+| Pages alias                        | `https://1e75037d.unifetch.pages.dev`（導向 canonical）                |
+| Install page source commit         | `a7f877d`                                                              |
 | Canonical `/extension`             | `https://unifetch.pages.dev/extension`                                 |
 | Rollback                           | `extension-v0.2.0` 未修改、仍公開                                      |
 
 - 已從 GitHub 重新下載 asset，SHA-256 與 size 均相符；Release 為 public、非 draft/prerelease。
 - 正式網站以 `VITE_UNIFETCH_RESOLVER_URL=https://unifetch-resolver.cernmeow.workers.dev` 建置並部署到 Pages 專案 `unifetch`。
-- Live `/extension` 顯示 v0.3.0、正確 asset、256.1 KiB 與上述 SHA-256；沒有 v0.2.0 安裝資訊。
+- Live `/extension` 顯示 v0.3.0、正確 asset、256.1 KiB 與上述 SHA-256，並宣傳 Threads 與 optional permission；沒有 v0.2.0 安裝資訊。
 - **Worker 未重新部署**：API contract 未變，extension 在本機取得 Threads metadata；目前 production Worker 仍回舊的 `threads_<shortcode>` 檔名給 Web/PWA，屬外觀落後，不是相容性錯誤。下次有計畫的 Worker 部署會帶上 caption-first 政策。
 - 回滾：保持 `extension-v0.2.0` release 不動；若 v0.3.0 有問題，將 `extension-release.ts` 指回 v0.2.0 asset 並重新部署 Pages。
 
