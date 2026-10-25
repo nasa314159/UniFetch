@@ -9,11 +9,12 @@ import { finalizeDownloadFilename } from './filename';
 import { normalizeStillImage } from './image-normalization';
 export {
   component,
+  createCaptionFilename,
   createDownloadFilename,
   finalizeDownloadFilename,
   extensionForMime,
 } from './filename';
-export type { FilenameInput } from './filename';
+export type { CaptionFilenameInput, FilenameInput } from './filename';
 export { normalizeStillImage } from './image-normalization';
 
 export * from './batch';

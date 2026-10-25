@@ -3,6 +3,7 @@ import {
   type MediaAsset,
   type ResolveResult,
 } from '@unifetch/core';
+import { createCaptionFilename } from '@unifetch/downloader/filename';
 import { bestThreadsCandidate } from './parser';
 import type {
   ThreadsResolvedAsset,
@@ -32,23 +33,34 @@ function assetDimensions(
 
 function threadsFilename(
   username: string,
+  caption: string | undefined,
   shortcode: string,
-  suffix: string,
-  extension: 'jpg' | 'mp4' | 'gif',
+  suffixIndex: number | undefined,
+  mimeType: string,
 ): string {
-  // Platform + author + stable post identity + ordered index. No caption or
-  // arbitrary page text is used; both components come from validated refs.
-  return `threads_${username}_${shortcode}${suffix}.${extension}`;
+  return createCaptionFilename({
+    username,
+    caption,
+    mediaType: mimeType === 'video/mp4' ? 'video' : 'image',
+    mimeType,
+    ...(suffixIndex !== undefined ? { index: suffixIndex } : {}),
+    // Threads has no `instagram_`-style prefix. A missing caption falls back to
+    // the stable shortcode rather than a generic "post" label.
+    authorFallback: 'threads',
+    identityFallback: shortcode,
+    requireMeaningfulCaption: true,
+  });
 }
 
 function normalizeAsset(
   item: ThreadsResolvedAsset,
   username: string,
+  caption: string | undefined,
   shortcode: string,
   index: number,
   numbered: boolean,
 ): MediaAsset {
-  const suffix = numbered ? `_${String(index + 1).padStart(2, '0')}` : '';
+  const suffixIndex = numbered ? index + 1 : undefined;
   const id = item.id ?? `${shortcode}_${String(index + 1).padStart(2, '0')}`;
   if (item.type === 'video') {
     const candidate = item.videoCandidates[0];
@@ -61,7 +73,13 @@ function normalizeAsset(
       ...assetDimensions(item, candidate.width, candidate.height),
       thumbnailUrl:
         bestThreadsCandidate(item.imageCandidates)?.url ?? item.thumbnailUrl,
-      suggestedFilename: threadsFilename(username, shortcode, suffix, 'mp4'),
+      suggestedFilename: threadsFilename(
+        username,
+        caption,
+        shortcode,
+        suffixIndex,
+        'video/mp4',
+      ),
     };
   }
   const candidate = bestThreadsCandidate(item.imageCandidates);
@@ -71,7 +89,13 @@ function normalizeAsset(
     type: 'image',
     url: candidate.url,
     ...assetDimensions(item, candidate.width, candidate.height),
-    suggestedFilename: threadsFilename(username, shortcode, suffix, 'jpg'),
+    suggestedFilename: threadsFilename(
+      username,
+      caption,
+      shortcode,
+      suffixIndex,
+      'image/jpeg',
+    ),
   };
 }
 
@@ -112,9 +136,10 @@ export function normalizeThreadsMedia(
               : {}),
             suggestedFilename: threadsFilename(
               media.username,
+              media.caption,
               media.shortcode,
-              '',
-              'gif',
+              undefined,
+              'image/gif',
             ),
           },
         ],
@@ -131,7 +156,14 @@ export function normalizeThreadsMedia(
   if (media.assets.length === 0) unavailable();
   const numbered = media.kind === 'carousel' || media.assets.length > 1;
   const assets = media.assets.map((item, index) =>
-    normalizeAsset(item, media.username, media.shortcode, index, numbered),
+    normalizeAsset(
+      item,
+      media.username,
+      media.caption,
+      media.shortcode,
+      index,
+      numbered,
+    ),
   );
   return {
     post: {

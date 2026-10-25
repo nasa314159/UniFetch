@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { createDownloadFilename, finalizeDownloadFilename } from './filename';
+import {
+  createCaptionFilename,
+  createDownloadFilename,
+  finalizeDownloadFilename,
+} from './filename';
 const base = {
   platform: 'instagram' as const,
   username: 'demo_studio',
@@ -90,4 +94,138 @@ describe('Human-readable download filenames', () => {
     expect(finalizeDownloadFilename('studio_post_01.jpg', '')).toBe(
       'studio_post_01.bin',
     ));
+});
+
+describe('Shared caption-first filename policy', () => {
+  const base = {
+    authorFallback: 'instagram',
+    identityFallback: 'post',
+    mediaType: 'image' as const,
+  };
+
+  it('uses author, caption snippet and final extension', () => {
+    expect(
+      createCaptionFilename({
+        ...base,
+        username: 'demo_user',
+        caption: 'A quiet morning',
+      }),
+    ).toBe('demo_user_A-quiet-morning.jpg');
+  });
+
+  it('uses the identity fallback when the caption is empty', () => {
+    expect(
+      createCaptionFilename({
+        ...base,
+        username: 'demo_user',
+        caption: '   ',
+        identityFallback: 'synthetic-code',
+      }),
+    ).toBe('demo_user_synthetic-code.jpg');
+  });
+
+  it('treats emoji-only captions as unusable when required', () => {
+    expect(
+      createCaptionFilename({
+        ...base,
+        username: 'demo_user',
+        caption: '🌿🌿🌿',
+        identityFallback: 'synthetic-code',
+        requireMeaningfulCaption: true,
+      }),
+    ).toBe('demo_user_synthetic-code.jpg');
+  });
+
+  it('preserves the existing Instagram emoji-only behavior by default', () => {
+    expect(
+      createCaptionFilename({
+        ...base,
+        username: 'demo_user',
+        caption: '🌿🌿🌿',
+        identityFallback: 'post',
+      }),
+    ).toBe('demo_user_🌿🌿🌿.jpg');
+  });
+
+  it('preserves Unicode letters and numbers', () => {
+    expect(
+      createCaptionFilename({
+        ...base,
+        username: '架空のユーザー',
+        caption: '真剣なミケ',
+        identityFallback: 'synthetic-code',
+        requireMeaningfulCaption: true,
+      }),
+    ).toBe('架空のユーザー_真剣なミケ.jpg');
+  });
+
+  it('sanitizes unsafe characters and line breaks', () => {
+    const output = createCaptionFilename({
+      ...base,
+      username: ' ../bad\\user ',
+      caption: 'a/b\\c:d*e?f"g<h>i|j\n\tk',
+      identityFallback: 'synthetic-code',
+    });
+    expect(output.endsWith('.jpg')).toBe(true);
+    for (const token of [
+      ' ',
+      '/',
+      '\\',
+      ':',
+      '*',
+      '?',
+      '"',
+      '<',
+      '>',
+      '|',
+      '\n',
+      '\t',
+    ])
+      expect(output).not.toContain(token);
+  });
+
+  it('bounds the caption snippet to 30 code points', () => {
+    expect(
+      createCaptionFilename({
+        ...base,
+        username: 'user',
+        caption: 'a'.repeat(100),
+        identityFallback: 'synthetic-code',
+      }),
+    ).toBe(`user_${'a'.repeat(30)}.jpg`);
+  });
+
+  it('adds two-digit carousel indices', () => {
+    expect(
+      createCaptionFilename({
+        ...base,
+        username: 'user',
+        caption: 'caption',
+        index: 1,
+        identityFallback: 'synthetic-code',
+      }),
+    ).toBe('user_caption_01.jpg');
+  });
+
+  it('uses the GIF extension when requested', () => {
+    expect(
+      createCaptionFilename({
+        ...base,
+        username: 'user',
+        caption: 'animated',
+        mimeType: 'image/gif',
+        identityFallback: 'synthetic-code',
+      }),
+    ).toBe('user_animated.gif');
+  });
+
+  it('uses the author fallback when the username is missing', () => {
+    expect(
+      createCaptionFilename({
+        ...base,
+        caption: 'caption',
+        identityFallback: 'synthetic-code',
+      }),
+    ).toBe('instagram_caption.jpg');
+  });
 });

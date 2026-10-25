@@ -221,7 +221,7 @@ describe('Threads SSR parsing', () => {
       width: 1600,
       height: 1200,
       suggestedFilename:
-        'threads_unifetch_threads_demo_synthetic-threads-image.jpg',
+        'unifetch_threads_demo_Synthetic-Threads-image-for-pa.jpg',
     });
   });
 
@@ -238,7 +238,7 @@ describe('Threads SSR parsing', () => {
       thumbnailUrl:
         'https://scontent.cdninstagram.com/v/t51/synthetic-video-poster.jpg',
       suggestedFilename:
-        'threads_unifetch_threads_demo_synthetic-threads-video.mp4',
+        'unifetch_threads_demo_Synthetic-Threads-video-for-pa.mp4',
     });
     expect(JSON.stringify(result)).not.toContain('og:image');
   });
@@ -257,10 +257,10 @@ describe('Threads SSR parsing', () => {
       'video',
     ]);
     expect(result.post.assets.map((asset) => asset.suggestedFilename)).toEqual([
-      'threads_unifetch_threads_demo_synthetic-threads-carousel_01.jpg',
-      'threads_unifetch_threads_demo_synthetic-threads-carousel_02.mp4',
-      'threads_unifetch_threads_demo_synthetic-threads-carousel_03.jpg',
-      'threads_unifetch_threads_demo_synthetic-threads-carousel_04.mp4',
+      'unifetch_threads_demo_Synthetic-mixed-Threads-carous_01.jpg',
+      'unifetch_threads_demo_Synthetic-mixed-Threads-carous_02.mp4',
+      'unifetch_threads_demo_Synthetic-mixed-Threads-carous_03.jpg',
+      'unifetch_threads_demo_Synthetic-mixed-Threads-carous_04.mp4',
     ]);
   });
 
@@ -282,9 +282,9 @@ describe('Threads SSR parsing', () => {
       'video',
     ]);
     expect(result.post.assets.map((asset) => asset.suggestedFilename)).toEqual([
-      'threads_unifetch_threads_demo_synthetic-threads-carousel_01.mp4',
-      'threads_unifetch_threads_demo_synthetic-threads-carousel_02.jpg',
-      'threads_unifetch_threads_demo_synthetic-threads-carousel_03.mp4',
+      'unifetch_threads_demo_Synthetic-mixed-Threads-carous_01.mp4',
+      'unifetch_threads_demo_Synthetic-mixed-Threads-carous_02.jpg',
+      'unifetch_threads_demo_Synthetic-mixed-Threads-carous_03.mp4',
     ]);
   });
 
@@ -303,7 +303,7 @@ describe('Threads SSR parsing', () => {
       'https://www.threads.com/@unifetch_threads_renamed/post/synthetic-threads-image/',
     );
     expect(result.post.assets[0].suggestedFilename).toBe(
-      'threads_unifetch_threads_renamed_synthetic-threads-image.jpg',
+      'unifetch_threads_renamed_Synthetic-Threads-image-for-pa.jpg',
     );
   });
 
@@ -445,7 +445,7 @@ describe('Threads GIF fallback', () => {
       mimeType: 'image/gif',
       url: 'https://media.giphy.com/media/synthetic/200.gif',
       suggestedFilename:
-        'threads_unifetch_threads_demo_synthetic-threads-gif.gif',
+        'unifetch_threads_demo_Synthetic-Threads-GIF-for-pars.gif',
     });
   });
 

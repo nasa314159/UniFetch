@@ -12,6 +12,30 @@ export interface FilenameInput {
   contentKind?: 'post' | 'reel';
 }
 
+export interface CaptionFilenameInput {
+  username?: string;
+  caption?: string;
+  mediaType: MediaType;
+  /** Provisional MIME; the downloader re-derives the extension from final bytes. */
+  mimeType?: string;
+  /** One-based original asset index, only for a carousel. */
+  index?: number;
+  /** Used when the author is missing; keeps the platform's existing fallback. */
+  authorFallback: string;
+  /** Used when the caption has no usable text (for example, no caption). */
+  identityFallback: string;
+  /**
+   * When true, a caption containing only emoji/punctuation is treated as
+   * unusable and `identityFallback` is used. Defaults to false so existing
+   * Instagram output is unchanged.
+   */
+  requireMeaningfulCaption?: boolean;
+}
+
+const CAPTION_SNIPPET_MAX = 30;
+const AUTHOR_MAX = 64;
+const FALLBACK_MAX = 64;
+
 export function component(value: string, maxLength: number): string {
   const clean = value
     .replace(/[\r\n\t]+/g, ' ')
@@ -58,6 +82,37 @@ export function finalizeDownloadFilename(
     '',
   );
   return `${component(stem, 160) || 'instagram_post_01'}.${extensionForMime(mimeType)}`;
+}
+
+/**
+ * Shared caption-first naming policy. Instagram and Threads both use
+ * `<author>_<caption-snippet>[_NN].<ext>`; the caller supplies the platform's
+ * missing-author fallback and the identity fallback used when no usable caption
+ * exists (Threads uses its stable shortcode).
+ */
+export function createCaptionFilename(input: CaptionFilenameInput): string {
+  const author =
+    component(input.username ?? '', AUTHOR_MAX) ||
+    component(input.authorFallback, AUTHOR_MAX) ||
+    input.authorFallback;
+  const caption = component(input.caption ?? '', CAPTION_SNIPPET_MAX);
+  const meaningful =
+    input.requireMeaningfulCaption === true
+      ? /[\p{L}\p{N}]/u.test(caption)
+      : Boolean(caption);
+  const fallback =
+    component(input.identityFallback, FALLBACK_MAX) || input.identityFallback;
+  const snippet = meaningful ? caption : fallback;
+  const index =
+    input.index !== undefined &&
+    Number.isInteger(input.index) &&
+    input.index > 0
+      ? `_${String(input.index).padStart(2, '0')}`
+      : '';
+  const mimeType =
+    input.mimeType ??
+    (input.mediaType === 'video' ? 'video/mp4' : 'image/jpeg');
+  return finalizeDownloadFilename(`${author}_${snippet}${index}`, mimeType);
 }
 
 /** assetIndex is zero-based in the original post, including when downloading a selection. */

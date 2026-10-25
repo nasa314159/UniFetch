@@ -453,7 +453,8 @@ describe('Threads public-post Worker path', () => {
       type: 'image',
       mimeType: 'image/gif',
       url: 'https://media.giphy.com/media/synthetic/200.gif',
-      suggestedFilename: `threads_${threadsUser}_synthetic-threads-gif.gif`,
+      suggestedFilename:
+        'unifetch_threads_demo_Synthetic-Threads-GIF-for-pars.gif',
     });
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(String(fetcher.mock.calls[1][0])).toBe(

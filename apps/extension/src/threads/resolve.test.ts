@@ -70,7 +70,8 @@ describe('Threads extension resolution (shared parser and normalizer)', () => {
     expect(result.assets).toHaveLength(1);
     expect(result.assets[0]).toMatchObject({
       type: 'image',
-      suggestedFilename: `threads_${threadsUsername}_${imageCode}.jpg`,
+      suggestedFilename:
+        'unifetch_threads_demo_Synthetic-Threads-image-for-pa.jpg',
     });
     expect(result.assets[0].url).toContain('synthetic-image-high.jpg');
   });
@@ -89,7 +90,8 @@ describe('Threads extension resolution (shared parser and normalizer)', () => {
     expect(result.assets[0]).toMatchObject({
       type: 'video',
       mimeType: 'video/mp4',
-      suggestedFilename: `threads_${threadsUsername}_${videoCode}.mp4`,
+      suggestedFilename:
+        'unifetch_threads_demo_Synthetic-Threads-video-for-pa.mp4',
     });
     expect(result.assets[0].url).toContain('synthetic-video-101.mp4');
   });
@@ -114,10 +116,10 @@ describe('Threads extension resolution (shared parser and normalizer)', () => {
       'video',
     ]);
     expect(result.assets.map((asset) => asset.suggestedFilename)).toEqual([
-      `threads_${threadsUsername}_${carouselCode}_01.jpg`,
-      `threads_${threadsUsername}_${carouselCode}_02.mp4`,
-      `threads_${threadsUsername}_${carouselCode}_03.jpg`,
-      `threads_${threadsUsername}_${carouselCode}_04.mp4`,
+      'unifetch_threads_demo_Synthetic-mixed-Threads-carous_01.jpg',
+      'unifetch_threads_demo_Synthetic-mixed-Threads-carous_02.mp4',
+      'unifetch_threads_demo_Synthetic-mixed-Threads-carous_03.jpg',
+      'unifetch_threads_demo_Synthetic-mixed-Threads-carous_04.mp4',
     ]);
     expect(carousel.carousel_media).toHaveLength(4);
   });
@@ -139,7 +141,8 @@ describe('Threads extension resolution (shared parser and normalizer)', () => {
     expect(result.assets[0]).toMatchObject({
       type: 'image',
       mimeType: 'image/gif',
-      suggestedFilename: `threads_${threadsUsername}_${gifCode}.gif`,
+      suggestedFilename:
+        'unifetch_threads_demo_Synthetic-Threads-GIF-for-pars.gif',
       url: 'https://media.giphy.com/media/synthetic/200.gif',
     });
     expect(gif.media_type).toBe(19);

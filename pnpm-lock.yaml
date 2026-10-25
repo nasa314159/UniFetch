@@ -118,6 +118,9 @@ importers:
       '@unifetch/core':
         specifier: workspace:*
         version: link:../core
+      '@unifetch/downloader':
+        specifier: workspace:*
+        version: link:../downloader
 
   packages/runtime-web:
     dependencies:
