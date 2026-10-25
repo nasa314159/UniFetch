@@ -28,7 +28,7 @@ Threads GIF posts may require a second public HTML request to the exact post's e
 
 ## Client storage and caching
 
-Input/shared URLs, post results, authors, captions and asset references remain transient in memory. The app writes no localStorage/sessionStorage/IndexedDB content history. Permitted future preferences are limited to theme, language placeholder and onboarding/install dismissal. Explicit browser download actions intentionally save files on the user's device; the app cannot confirm filesystem writes.
+Input/shared URLs, post results, authors, captions and asset references remain transient in memory. The app writes no localStorage/sessionStorage/IndexedDB content history. Permitted future preferences are limited to theme, language placeholder and onboarding/install dismissal. Explicit browser download actions intentionally save files on the user's device; the app cannot confirm filesystem writes. Download filenames may contain the public author username and a short public caption snippet (or the stable shortcode when no usable caption exists), matching the Instagram convention; no private data is added.
 
 The service worker caches only application-shell HTML, JS, CSS and icons. Its runtime cache rules are empty, demo media is excluded and user content never becomes an intentional cache entry. Fixed fictional fixtures are part of the shell bundle. There is no offline media archive. Source/CDN HTTP caching and browser history are outside application control.
 

@@ -762,9 +762,9 @@ E2 的 production-build 驗證（2026-10-24）：
 
 - Threads 單圖、原生影片、先前測過的 carousel 與 GIF 均可下載。
 - Instagram 登入態 Post、Carousel、Reel、explicit-id Story 通過；username-only Story 正確 fail closed。
-- Threads optional permission 原生 **Allow 已通過**；**Deny 仍未驗證**。
-- 一個 canonical Threads URL 以舊 username 開啟時失敗；官方 share URL 後來證實可解析同一個 canonical post。
-- 本輪自動化 gates：`pnpm test`（922 tests / 51 files）、`pnpm lint`、`pnpm typecheck`、`pnpm build`、`pnpm format:check`、`git diff --check` 全部通過。
+- Threads optional permission 原生 **Allow 與 Deny 均已通過**。
+- 使用者已重測修正後的舊 username canonical URL 與 official share URL，兩者都能解析並下載正確媒體。
+- 本輪自動化 gates：`pnpm test`（940 tests / 52 files）、`pnpm lint`、`pnpm typecheck`、`pnpm build`、`pnpm format:check`、`git diff --check` 全部通過。
 
 E2B 修正的實際 root cause 不是 mixed-media parser：
 
@@ -775,22 +775,22 @@ E2B 修正的實際 root cause 不是 mixed-media parser：
 
 ### 17.6 Threads 檔名政策（2026-10-25）
 
-Instagram extension 既有檔名為 `<username>_<caption-snippet>[_NN].<ext>`（Story 另含 `_story[_NN]`）。Threads 改為：
+Instagram extension 既有檔名為 `<username>_<caption-snippet>[_NN].<ext>`（Story 另含 `_story[_NN]`）。Threads 現在使用同一個 caption-first 政策：
 
-`threads_<current-username>_<shortcode>[_NN].<ext>`
+`<current-username>_<caption-snippet>[_NN].<ext>`
 
-- `threads_`：平台識別，避免與 Instagram 檔名混淆。
-- `<current-username>`：與 Instagram 一致包含作者；使用 Threads 最終 redirect 後的目前 handle。
-- `<shortcode>`：穩定 post 身分，避免同作者／同截圖情境的碰撞。
+- 不加 `threads_` 前綴，因為 Instagram 也沒有 `instagram_` 前綴。
+- `<current-username>`：使用 Threads 最終 redirect 後的目前 handle。
+- `<caption-snippet>`：已解析的 Threads caption，沿用 Instagram 的 30 字元截斷、Unicode 保留、空白轉 `-`、檔案系統不安全字元移除。
+- caption 空白、只有 emoji 或清理後沒有字母／數字時，改用穩定 shortcode：`<username>_<shortcode>[_NN].<ext>`。
 - `[_NN]`：carousel 原始順序，二位數。
-- 不使用 caption、私人資料或頁面任意文字；extension 仍由 downloader 依最終 bytes 的 MIME 決定 `.jpg`／`.mp4`／`.gif`。
+- 不使用任意頁面文字；extension 仍由 downloader 依最終 bytes 的 MIME 決定 `.jpg`／`.mp4`／`.gif`。
 
-範例（合成）：`threads_example_user_synthetic-image.jpg`、`threads_example_user_synthetic-carousel_01.jpg`、`threads_example_user_synthetic-carousel_02.mp4`、`threads_example_user_synthetic-gif.gif`。Instagram 檔名政策不變。
+範例（合成）：`example_user_Example-caption.jpg`、`example_user_Example-caption_01.jpg`、`example_user_Example-caption_02.mp4`、`example_user_Example-caption.gif`；無 caption 時 `example_user_synthetic-code.jpg`。Instagram 檔名政策不變。
 
 ### 17.7 尚未物理驗證（發佈 blocker）
 
-- **Optional permission 原生 Deny 未真人點擊**：Allow 已由使用者通過；Deny 仍需在 real Chrome 按一次 Block/Deny，確認 popup 顯示 `PERMISSION_REQUIRED` 且沒有 rule／下載。
-- **修正後的使用者 post 尚未由使用者重測**：E2B 已在 headless production build 驗證舊 canonical 與 official share 均成功；仍以使用者 real Chrome 重測為準。
+- **新版 caption-based 檔名尚未由使用者 real-Chrome 確認**：headless 測試已用 `prepareBlobDownload` 驗證 final downloader filename（image/video/mixed carousel/GIF、無 caption、emoji-only、Unicode），但依規定不宣稱使用者已看過新檔名。
 - 未驗證「登入後 Threads 才看得到的貼文」；extension 一律 `credentials: 'omit'`，這類貼文會 typed fail closed，屬預期。
 
 ### 17.8 v0.3.0 發佈步驟（尚未執行）
@@ -801,7 +801,7 @@ Instagram extension 既有檔名為 `<username>_<caption-snippet>[_NN].<ext>`（
 4. 將 version、tag、fileName、downloadUrl、sha256、sizeBytes 更新到 `apps/web/src/config/extension-release.ts` 並 commit。
 5. 先 push，再執行 `node scripts/release-extension.mjs` 驗證；確認無誤後才 `--publish`。
 6. 從 GitHub 重新下載 asset，核對 SHA-256 與 size；再重新 build/deploy Pages，讓 `/extension` 指向 v0.3.0。
-7. 真人工 Chrome 檢查：optional permission Allow/Deny、Threads 圖片／carousel／影片／GIF／share、Instagram Post/Reel/explicit-id Story，以及 `/stories/<username>/` fail closed。
+7. 真人工 Chrome 檢查：新版 Threads 檔名（caption、無 caption、carousel index、GIF）、Threads 圖片／carousel／影片／GIF／share、Instagram Post/Reel/explicit-id Story，以及 `/stories/<username>/` fail closed。
 
 回滾：保持 `extension-v0.2.0` release 不動；若 v0.3.0 有問題，將 `extension-release.ts` 指回 v0.2.0 asset 並重新部署 Pages，使用者重新下載 v0.2.0 ZIP 或保留舊 unpacked 資料夾。
 
