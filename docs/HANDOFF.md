@@ -2,7 +2,7 @@
 
 > 語言：Traditional Chinese（繁體中文）
 > 適用對象：接手 Instagram / Threads 維護、準備開始 L2 本機優先 PoC、或準備開始 Facebook 的工程師
-> 最後更新：2026-10-25（L1 完成、Chromium Extension v0.3.0 已發佈）
+> 最後更新：2026-10-25（L2S 行動版低摩擦本機解析可行性完成；Chromium Extension v0.3.0 已發佈）
 > 本文件是交接入口。英文的產品／隱私細節仍以 `README.md`、`docs/supported-content.md`、`docs/privacy-model.md` 為準。
 
 ---
@@ -16,7 +16,8 @@
 - **使用者名稱限定 Story（`/stories/<username>/`）已停用，並且是 fail-closed**：不發出請求、不掃描 DOM、不猜 ID。
 - M8B–M8D 的 Story 實驗完整保存在分支 `research/m8b-m8d-instagram-story`（snapshot commit `72c590e`）。
 - 使用者已手動回報 Instagram 登入態 Post / Carousel / Reel / explicit-id Story 通過，username-only Story 正確 fail closed。本輪自動化與 headless 驗證只涵蓋程式、測試、建置與 Threads 公開樣本；**不要把自動測試通過當成 Instagram 線上功能保證。**
-- v0.3.0 的所有人工 gates 已完成。**L1 本機優先解析可行性研究已完成，結論為 CONDITIONAL GO**；完整報告見 `docs/l1-local-first-resolver-feasibility.md`。**尚未開始 L2**，需使用者明確核准。不要重寫 UniFetch 架構、不要修改 Worker/Extension，也不要在此步驟開始 L2/Facebook 開發。
+- v0.3.0 的所有人工 gates 已完成。**L1 本機優先解析可行性研究已完成，結論為 CONDITIONAL GO**；完整報告見 `docs/l1-local-first-resolver-feasibility.md`。**L2S 行動版低摩擦本機解析可行性也已完成，結論為 CONDITIONAL GO（僅限 iOS Shortcut 實機實驗與診斷 UX；Android 零安裝本機傳輸為 NO-GO）**；完整報告見 `docs/l2s-mobile-local-resolver-feasibility.md`。**尚未開始 L2T/L2D/L2B**，需使用者明確核准。不要重寫 UniFetch 架構、不要修改 Worker/Extension，也不要在此步驟開始 L2/Facebook 開發。
+- L2S 觀察到：production Worker 對公開 Instagram 樣本在 **GraphQL 階段**回 `LOGIN_REQUIRED`，同一時間 Threads control 正常；同一公開樣本從非 Cloudflare 網路帶匿名 `csrftoken` cookie＋`X-CSRFToken` 可成功。iOS Shortcut 的 HTTP 序列在 macOS 模擬可行，但**尚未在 iPhone/iPad 實機執行**；Android 沒有零安裝的本機跨來源傳輸。
 
 ---
 
@@ -871,10 +872,161 @@ Instagram extension 既有檔名為 `<username>_<caption-snippet>[_NN].<ext>`（
 
 ---
 
-## 19. 相關文件
+## 19. L2A Tauri 原生 HTTP 本機解析 PoC（2026-10-25）
+
+### 19.1 結論
+
+- **L2A 狀態：CONDITIONAL GO（有條件通過）**。桌面 native core 已用真實網路完成公開單圖 Instagram/Threads 取得、既有 parser 解析、原生下載與存檔；Android 只完成建置，runtime **NOT VERIFIED**。
+- 分支：`research/l2a-tauri-native-http-poc`，自 `main`（`44086be`）建立，並只 cherry-pick L1 的 docs-only commit `f9764ee`。
+- 完整英文報告：`docs/l2a-tauri-native-http-poc.md`。
+- PoC 位於 `research/l2a-tauri-native-http-poc/`，有獨立的 `pnpm-workspace.yaml` 與 lockfile，**不屬於** production pnpm workspace。
+- 本輪**沒有**修改 Web/PWA、Resolver Worker、Chromium Extension v0.3.0、production 環境變數或已發佈 release；`opencode.jsonc` 保持未追蹤。
+
+### 19.2 已完成
+
+- 最小 Tauri v2 + Vue 本機 UI；Rust `reqwest`（rustls）原生 HTTPS；只有五個 command：`resolve_instagram`、`resolve_threads`、`save_media`、`security_self_check`、`app_info`。
+- Instagram：固定 bootstrap + 固定 GraphQL profile；只帶 ephemeral `X-CSRFToken`，**不送 Cookie/Authorization**；raw JSON 交回既有 `parseInstagramMediaResponse` / `normalizeInstagramMedia`。
+- Threads：固定 canonical SSR URL；最多一次同 origin、同 shortcode 的 username alias redirect；HTML 交回既有 `parseThreadsSsrHtml` / `normalizeThreadsMedia`，publisher 仍精確比對。
+- 原生下載與儲存：HTTPS CDN allowlist（`*.cdninstagram.com`、`*.fbcdn.net`）、最多 3 次 allowlisted redirect、25 MiB 上限、JPEG/PNG/WebP/GIF signature 檢查、app data dir、檔名 sanitize、temp+rename、exists/nonempty、SHA-256。
+- 40 項本機安全檢查全數通過；7 項 Tauri mock-IPC 測試通過，包含 remote origin 不能呼叫 local command、未註冊 `plugin:fs|...` 被拒絕。
+- Android debug/release APK 建置成功；release manifest `usesCleartextTraffic=false`，只有 `INTERNET` permission。
+
+### 19.3 實測結果（desktop native core）
+
+| 平台      | 結果                                                                                                                                                                                                                       |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Instagram | bootstrap 200、CSRF present、GraphQL 200 JSON 22,419 bytes；既有 parser 接受為單圖 1125×1406（`lastlineofdefense`）；下載 607,762 bytes JPEG，SHA-256 `ab64fabfab94512cb020046ec81e8266a9cfa47a5a8de6d03566084cb6dba829`。 |
+| Threads   | SSR 200 HTML 834,105 bytes、`redirected=false`；既有 parser 接受為單圖 1220×1412（`threads`）；下載 168,144 bytes JPEG，SHA-256 `e722063facc46762dc981f14f59bfb508af997483e8018c4b9141952f0de387a`。                       |
+
+- 兩個路徑都**沒有**送 Cookie/Authorization，**沒有**連 Cloudflare Worker。
+- 證據在 `research/l2a-tauri-native-http-poc/evidence/`：sanitized `summary.json` 與 `security.json` 已 commit；raw responses、parser 產生的 signed URL 檔與 `downloads/*.jpg` 仍 gitignored。
+- 這是單一公開樣本、單一網路環境的結果；不能證明長期穩定、rate-limit 行為或 Android egress 行為。
+- 設計前的少量手動 probe 中，Instagram 無 CSRF header 曾回 403；PoC 因此保留固定 bootstrap/CSRF，但只送 `X-CSRFToken`，不送 anonymous cookie jar。此差異是否穩定，留待 L2B 驗證。
+
+### 19.4 Android 狀態
+
+- **沒有連接裝置、沒有 AVD**；Android runtime **NOT VERIFIED**，只能算 **BUILD-ONLY**。不可用 APK 建置成功推論 Android 可解析或可存檔。
+- 手動裝置測試步驟見報告第 5.4 節。若 Android 遇到 Instagram 401/403/challenge，記錄精確 stage 後停止；不要加 retry loop、proxy rotation、fingerprint spoofing、CAPTCHA solving 或 cookie 匯出。
+
+### 19.5 未驗證／限制
+
+- Android runtime、Android 網路 egress（Wi-Fi/行動網路）、Android 實際檔案儲存。
+- Desktop 真正的 Tauri WebView GUI/IPC 未啟動；桌面證據是 native core headless self-test + Tauri mock-IPC，不是 GUI 點擊。
+- Threads live username alias redirect 未觀察到；由 unit/frontend 測試覆蓋 accept/reject。
+- Instagram `doc_id`/app ID profile 是上游不穩定實作細節，可能隨時變動。
+- no-Cookie CSRF-only 只有單次成功觀測；production Worker 目前仍使用 anonymous cookie jar。
+- 單圖以外（carousel/video/GIF）、登入、share intent、MediaStore/gallery、背景下載、iOS 均未做。
+- 法律/ToS/商店政策未審查；release APK 未簽章。
+
+### 19.6 下一個里程碑
+
+- **不要自動開始 L2B。**
+- L2B 第一步應是 Android 實機/模擬器 runtime 驗證：安裝 debug APK、解析兩個樣本、存檔、驗證 bytes/signature/SHA-256、記錄 diagnostics 與 origins；Wi-Fi 與行動網路各測一次。
+- 再進行低量多樣本（例如每平台 5 篇公開單圖）驗證 parser/profile 穩定度與 rate limit；不得 crawl 或枚舉。
+- L2B 仍應 public-only、單圖、app-private 儲存；**不要**把 authenticated Instagram WebView bridge、cookie 分享或 remote IPC 放進 L2B，那是另一個里程碑。
+
+---
+
+## 20. L2S 行動版低摩擦本機解析可行性（2026-10-25）
+
+### 20.1 結論
+
+- **L2S 狀態：CONDITIONAL GO。** 只對「iOS/iPadOS Shortcut 原生 HTTP 快路徑＋Web `/import` 交接」與「Resolve 階段診斷／fallback UX」有條件放行。
+- **Android 零安裝本機傳輸：NO-GO。** 沒有可信的瀏覽器 API 可以跨來源讀取 Instagram metadata；不要用 WASM、Service Worker、iframe 或 `no-cors` 重新包裝 Fetch。
+- **不要強制 Android APK。** L2A 的 Android runtime 仍是 BUILD-ONLY；share intent、MediaStore/gallery、簽章與更新都尚未完成。
+- 完整英文報告：`docs/l2s-mobile-local-resolver-feasibility.md`。
+- 分支：`research/l2s-mobile-local-resolver`，自 `main`（`44086be`）建立；只帶入 L1/L2A 的 docs-only 報告，沒有合併 L2A PoC 程式。
+- 本輪**沒有**部署 Worker/Pages、沒有修改 production Web/PWA、沒有修改 Extension v0.3.0、沒有改 production error contract、沒有改 production authentication；`opencode.jsonc` 保持未追蹤。
+
+### 20.2 已確認的故障階段
+
+- 使用者觀察：Android vivo X300 的 Instagram Post/Reel 在 Resolve 階段失敗；iPad 有一次 image carousel 成功，後續 video／其他 Resolve 失敗。兩者都**在 preview 之前**；只要 preview 成功，下載就成功。沒有觀察到獨立的媒體下載／相簿儲存失敗。
+- Production read-only probe（`POST /api/resolve`，Origin 為 `https://unifetch.pages.dev`）：
+  - 公開 Instagram 樣本回 `HTTP 403`，`code: LOGIN_REQUIRED`，message 是 GraphQL 階段的 `Instagram requires login for this content...`。
+  - 同一時間公開 Threads 樣本回 `HTTP 200`、`ok:true`、image。Worker/CORS/Pages 路徑是健康的。
+- 因此 production 失敗在 **GraphQL response**，不是 bootstrap、CSRF extraction、parser、CORS、service worker 或 UI。但 public error contract 无法區分 `401`／`403`／redirect，也無法區分「這篇內容需要登入」與「Instagram 拒絕這個 resolver egress」。
+- **UI 診斷不足：** `apps/web/src/error-messages.ts` 對 `LOGIN_REQUIRED` 使用固定文案，會丟棄 Worker 已經產生的三種安全 message（bootstrap／CSRF／GraphQL）。使用者只看到「This post requires sign-in」和 `LOGIN_REQUIRED`，無法知道是哪一階段。
+- iPad 有一次成功，代表不是永久性的 CORS／parser／UI 缺陷；間歇性上游拒絕或內容特定登入要求更合理。Android 的現象與此一致，但沒有擷取到裝置上的精確 error code。
+
+### 20.3 macOS HTTP 模擬（不是 iOS Shortcut 實機）
+
+在 macOS 上以公開樣本 `DPCM9i1iTOx` 做小量、無登入、無 cookie 匯出的測試：
+
+- bootstrap `GET https://www.instagram.com/` → `200`，501,534 bytes，`Set-Cookie: csrftoken`，HTML 內 `"csrf_token"` 與 cookie 值相同。
+- GraphQL `POST` 只帶 `X-CSRFToken`、不帶 Cookie → `403` HTML。
+- GraphQL `POST` 帶 `Cookie: csrftoken=…`＋`X-CSRFToken` → `200` JSON（22,419 bytes，media root 存在）。
+- GraphQL `POST` 用 multipart form → `400 invalid request`。
+- GraphQL `POST` 用 JSON body（`variables` 可以是 string 或 object）→ `200` JSON。
+- 帶 production-like anonymous cookie jar → `200` JSON；只有 cookie、沒有 `X-CSRFToken` → `403`。
+- `HEAD` bootstrap → `200` 且有 `Set-Cookie`；公開 embed page → `200` HTML，但**沒有 `Access-Control-Allow-Origin`**，`X-Frame-Options: DENY`，不能當 browser CORS fallback。
+
+這些結果修正了 L2A 的一個不穩定觀察：**no-Cookie CSRF-only 在本次環境不可靠；Cookie + `X-CSRFToken` 才是可重現的組合。** Production Worker 本身有送 anonymous cookie jar，所以它的 401/403 不是「少送 cookie」那麼簡單；最可能仍是 Cloudflare egress 的 IP/ASN/TLS/上游實驗差異，但**機制未證實**。
+
+### 20.4 iOS Shortcut 實驗
+
+- 已建立可版本控制的 generator：`research/l2s-mobile-local-resolver/shortcut/build_shortcut.py`；產生的 XML：`UniFetch-L2S-Experimental.xml`。
+- Shortcut 流程：share sheet → 驗證 URL → bootstrap GET → 取 `csrf_token` → 固定 GraphQL POST（JSON body、`Cookie: csrftoken=…`、`X-CSRFToken`）→ 若 body 以 `{` 開頭，複製 raw JSON 到剪貼簿並開 `https://unifetch.pages.dev/import#url=…`；否則開既有 `/share?url=…` Worker fallback。
+- 產生的 plist 已通過社群 Shortcuts Playground validator（`--target-macos 27 --target-platform ios`），並用 Apple `shortcuts sign --mode anyone` 產生 signed `.shortcut`（本機 build 26,682 bytes，SHA-256 `644459a8a96a222435b3960cd1db4016f7ad6975ed5fb09d5bcfe7def981f2f4`）。
+- **尚未在 iPhone/iPad 匯入、執行或 share-sheet 測試。** Signed artifact 放在 gitignored `artifacts/`，沒有 commit；textual source 與 XML 有 commit。
+- 尚未實作 `/import`。它的合約在報告 §6.3：讀 `#url`、scrub、使用者手勢後讀剪貼簿、size cap、**raw `items[0].code` 必須等於 shortcode**（現有 parser 以 supplied shortcode 為 authoritative，不能直接信任剪貼簿）、CDN allowlist、重用 `parseInstagramMediaResponse`／`normalizeInstagramMedia`、不把 metadata 上傳到伺服器。
+- iOS Shortcuts 的未驗證點：手動 `Cookie` header 是否被接受／與 cookie jar 合併、跨 action cookie 共享、JSON File body、status/header/timeout 不可控、bootstrap HTML 快取、iCloud Private Relay／VPN 對 egress 的影響、`Open URL` 開 Safari 而非已安裝 PWA、剪貼簿權限提示、iPad share sheet 差異。
+
+### 20.5 Android 結論
+
+- 現有 PWA Share Target 只把 URL 交給 PWA；安裝後的 WebAPK 仍是 browser sandbox。
+- 一般 `fetch`（CORS）讀不到 Instagram；`no-cors` 是 opaque；Service Worker 只控制自己 origin；iframe 不能跨 origin 讀 DOM；WASM 沒有 socket／跨來源權限；WebSocket/WebTransport/WebRTC 需要伺服器配合；form POST／JSONP／`<script>` 都不提供可讀的 metadata；`<img>`/`<video>` 只有媒體 bytes。
+- Android Chrome 的 desktop extension 模型不可依賴；替代瀏覽器或 Chrome extension 是額外安裝，不是零安裝。
+- 可選 APK（L2A Tauri）或 Tasker／HTTP Shortcuts／Termux 都能做 native HTTP，但都要安裝／設定，且 Android runtime 未驗證。**不得把 APK 變成必要步驟。**
+- Hosted Worker 仍是 Android 一般使用者的必要 fallback；可考慮未來的 multi-egress Worker 實驗，但這是 server-side、需要部署與成本／安全審查，不是 L2S 的一部分。
+
+### 20.6 建議的使用者流程
+
+- **iPhone/iPad（實驗）：** Instagram → 分享 → UniFetch L2S Shortcut → native bootstrap+GraphQL → 若成功，Safari 開 `/import`，按一次 Import 讀剪貼簿 → preview → download；若失敗，自動開既有 `/share?url=…` Worker flow。
+- **Android（現在）：** Instagram → 分享 → UniFetch PWA → Worker → preview → download；失敗時顯示 stage-aware 訊息、Retry、Open original。
+- **Android（未來可選）：** 另行安裝 optional APK；不作为默认流程。
+- **Desktop：** Chromium Extension v0.3.0 不變。
+
+### 20.7 下一個里程碑建議
+
+- **L2T（主要）：iOS Shortcut Native Transport + Web Import（device-gated）**
+  1. 在 research branch 實作 `/import`（不部署）：fragment scrub、剪貼簿手勢、size cap、raw shortcode 檢查、CDN allowlist、parser reuse、typed error、standard-resolver link。
+  2. 用 §11 的 generator／manual steps 建 Shortcut，測 A–E variants。
+  3. 依報告 §12 在 iPhone 與 iPad 實機測：image／carousel／Reel、Wi-Fi／行動網路、Private Relay on/off、fallback、隱私、效能。
+  4. 不部署 Pages/Worker，不改 production。
+- **L2D（搭配）：Resolver Diagnostics & Fallback UX**
+  - 在 error contract 加 closed-enum `stage`／`retryable`／status class；更新 strict Zod schema 與 Web client；UI 顯示 diagnostic details 與 copy；加 Retry／Open original；測試不得洩漏 URL／body／cookie／token／media URL。
+- **L2E（未來、需核准）：Worker egress redundancy**
+  - 用第二個獨立 egress 比較成功率，解決 Android 沒有本機傳輸的問題；不新增憑證、不代理媒體、不重試規避。
+- **不要開始：** L2B external-WebView/session bridge、W1、Facebook、mandatory APK、production deployment、native iOS app。
+
+### 20.8 安全與隱私邊界
+
+- Shortcut 不讀取、不匯出 `sessionid`、`ds_user_id`、`Authorization` 或帳號 cookie；只使用公開 bootstrap 的匿名 `csrftoken`，且只存在記憶體。
+- 不登入、不破解 challenge、不輪換 proxy、不做 CAPTCHA、不隨機化 fingerprint、不重試規避。固定的 browser-like UA 是兼容 header，不是 TLS/JA3 spoof。
+- Clipboard 內是公開 metadata（caption、username、signed CDN URL），系統剪貼簿可能被其他 app／Universal Clipboard 讀取；`/import` 應提供 clear clipboard，且不得把 JSON 放到 notification／file／log。
+- Fragment 只放 canonical public URL，載入後立即 scrub；不把 metadata 放 query／server。
+- `/import` 必須把剪貼簿視為 untrusted：raw shortcode 必須匹配、asset URL 只允许 HTTPS + `*.cdninstagram.com`／`*.fbcdn.net`、size cap、不得 render raw HTML/JSON、不得讓 payload 指向任意 origin。
+- Worker/Extension 的不變量不變：一次一個公開 URL、無憑證、無 media proxy、typed error、無 raw payload log。
+- 法律/ToS：Shortcut 仍存取 Instagram 公開 web endpoint；不因換到裝置端而消除條款與產品風險，正式推出前需法律／政策審查。
+
+### 20.9 本輪變更
+
+- 新增 `docs/l2s-mobile-local-resolver-feasibility.md`。
+- 新增 `research/l2s-mobile-local-resolver/shortcut/build_shortcut.py`、`UniFetch-L2S-Experimental.xml`、`README.md`。
+- 更新 `docs/HANDOFF.md`（本節）。
+- 將 L1／L2A 的 docs-only 報告帶到本分支作為背景；**沒有**合併 L2A PoC 程式。
+- `opencode.jsonc` 保持未追蹤；`artifacts/` 的 signed Shortcut 不 commit。
+- 沒有部署、沒有 production 行為變更、沒有 Extension v0.3.0 變更。
+
+---
+
+## 21. 相關文件
 
 - `README.md` — 產品與快速開始
 - `docs/l1-local-first-resolver-feasibility.md` — L1 本機優先解析可行性報告（英文）
+- `docs/l2a-tauri-native-http-poc.md` — L2A Tauri 原生 HTTP PoC 報告（英文）
+- `docs/l2s-mobile-local-resolver-feasibility.md` — L2S 行動版低摩擦本機解析可行性報告（英文）
+- `research/l2s-mobile-local-resolver/shortcut/README.md` — L2S 實驗 Shortcut 建置／匯入說明
 - `docs/supported-content.md` — 各平台／runtime 能力矩陣
 - `docs/architecture.md` — 模組邊界與資料流
 - `docs/privacy-model.md` — 隱私與信任邊界
