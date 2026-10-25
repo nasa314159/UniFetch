@@ -6,10 +6,10 @@
  * set `downloadUrl`, `sha256` and `sizeBytes` to null; the install page then
  * shows an accurate "release not yet available" state instead of a dead link.
  *
- * The checked-in value below is the published v0.2.0 asset. The extension
- * source may carry a newer unreleased candidate (for example v0.3.0 with local
- * Threads support); do not update this configuration until that release asset
- * exists and its checksum has been verified.
+ * The checked-in value below is the published v0.3.0 asset. The extension
+ * source and website configuration must stay in lockstep once a release is
+ * published; do not point this at a newer source candidate until its release
+ * asset exists and its checksum has been verified.
  *
  * The build/packaging tests keep this file consistent with
  * apps/extension/manifest.json and the GitHub Release asset name.
@@ -30,13 +30,13 @@ export interface ExtensionReleaseConfig {
 const repositoryUrl = 'https://github.com/nasa314159/UniFetch';
 
 export const EXTENSION_RELEASE: ExtensionReleaseConfig = {
-  version: '0.2.0',
-  tag: 'extension-v0.2.0',
-  fileName: 'unifetch-chromium-extension-v0.2.0.zip',
+  version: '0.3.0',
+  tag: 'extension-v0.3.0',
+  fileName: 'unifetch-chromium-extension-v0.3.0.zip',
   downloadUrl:
-    'https://github.com/nasa314159/UniFetch/releases/download/extension-v0.2.0/unifetch-chromium-extension-v0.2.0.zip',
-  sha256: '6dcfd8fda34e80c3030762cf2ae576f2f0b29f8d3ee2da9af05351031f2463f3',
-  sizeBytes: 252431,
+    'https://github.com/nasa314159/UniFetch/releases/download/extension-v0.3.0/unifetch-chromium-extension-v0.3.0.zip',
+  sha256: '7570584c9f99b07d1054ea6c1b8046c8e00405a603351e6df04a0d4ff69f32ef',
+  sizeBytes: 262197,
   repositoryUrl,
   releasesUrl: `${repositoryUrl}/releases`,
   installHelpUrl:
