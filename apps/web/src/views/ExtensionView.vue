@@ -27,9 +27,9 @@ async function copySettingsUrl() {
       <p class="eyebrow">DESKTOP CHROMIUM · MANUAL INSTALL</p>
       <h1>Install Browser Extension</h1>
       <p class="lead">
-        Add authenticated Instagram downloads to desktop Chrome / Chromium. The
-        extension is distributed as a GitHub Releases ZIP and loaded manually
-        with <strong>Load unpacked</strong>.
+        Add authenticated Instagram downloads and public-only Threads downloads
+        to desktop Chrome / Chromium. The extension is distributed as a GitHub
+        Releases ZIP and loaded manually with <strong>Load unpacked</strong>.
       </p>
       <p class="not-store">
         Not listed in the Chrome Web Store. Developer mode is required for this
@@ -63,12 +63,13 @@ async function copySettingsUrl() {
         <p class="mode-label">NO INSTALL REQUIRED</p>
         <h3>UniFetch Web/PWA</h3>
         <p>
-          For public Instagram links in a normal browser tab. Works on desktop
-          and mobile, including the PWA share flow.
+          For public Instagram and Threads links in a normal browser tab. Works
+          on desktop and mobile, including the PWA share flow.
         </p>
         <ul>
           <li>Public Post, Carousel and Reel metadata</li>
-          <li>No Instagram login required</li>
+          <li>Public Threads image, video and carousel metadata</li>
+          <li>No Instagram or Threads login required</li>
           <li>Stories are not available</li>
         </ul>
         <RouterLink to="/">Use the Web/PWA</RouterLink>
@@ -77,15 +78,19 @@ async function copySettingsUrl() {
         <p class="mode-label">DESKTOP CHROMIUM</p>
         <h3>UniFetch Browser Extension</h3>
         <p>
-          For downloads that need your existing Instagram browser session.
-          Installed manually from a GitHub Releases ZIP.
+          For downloads that need your existing Instagram browser session, plus
+          public-only Threads downloads. Installed manually from a GitHub
+          Releases ZIP.
         </p>
         <ul>
           <li>Authenticated Post, Carousel and Reel downloads</li>
           <li>
             Stories only when the link already contains an explicit Story ID
           </li>
-          <li>Uses the Instagram session already in your browser</li>
+          <li>Public Threads image, video, carousel and GIF downloads</li>
+          <li>
+            Optional threads.com permission requested only for Threads links
+          </li>
         </ul>
       </article>
     </section>
@@ -252,17 +257,21 @@ async function copySettingsUrl() {
             </p>
           </li>
           <li>
-            <h3>Open Instagram and sign in normally</h3>
+            <h3>Open Instagram or a public Threads post</h3>
             <p>
-              Open <code>instagram.com</code> in the same browser profile and
-              sign in as usual. Click the UniFetch Instagram icon in the
+              For Instagram, open <code>instagram.com</code> in the same browser
+              profile and sign in as usual. Click the UniFetch icon in the
               toolbar; if it is hidden, open the extensions (puzzle-piece) menu
               and pin it.
             </p>
             <p>
               Open a Post, Carousel, Reel or an explicit-ID Story tab, then use
-              Resolve or Download all in the popup. Nothing is sent to a
-              UniFetch server.
+              Resolve or Download all in the popup. For Threads, open a public
+              post or paste its canonical/share URL; Chrome asks for the
+              optional
+              <code>threads.com</code> permission only for that action. Threads
+              requests use <code>credentials: omit</code> and never use your
+              logged-in Threads session. Nothing is sent to a UniFetch server.
             </p>
           </li>
         </ol>
@@ -275,8 +284,8 @@ async function copySettingsUrl() {
             Chrome Web Store updates do not apply. To update, download the newer
             GitHub release, extract it, then return to
             <code>chrome://extensions</code> and click
-            <strong>Reload</strong> on UniFetch Instagram. If the folder path
-            changes, remove the old extension and load the new folder.
+            <strong>Reload</strong> on UniFetch. If the folder path changes,
+            remove the old extension and load the new folder.
           </p>
           <p>
             To uninstall, click <strong>Remove</strong> in
@@ -286,10 +295,16 @@ async function copySettingsUrl() {
         <article>
           <h2>Security and privacy</h2>
           <p>
-            The extension requests only <code>activeTab</code>,
-            <code>scripting</code> and <code>clipboardRead</code>, with access
-            limited to <code>https://www.instagram.com/*</code>. It does not
-            request cookies, history, tabs, webRequest or storage.
+            The extension requests <code>activeTab</code>,
+            <code>scripting</code>, <code>clipboardRead</code> and the
+            host-scoped <code>declarativeNetRequestWithHostAccess</code> API.
+            Instagram access is required at
+            <code>https://www.instagram.com/*</code>; Threads access is optional
+            at <code>https://www.threads.com/*</code> and is requested only for
+            a Threads action. The header rule only sets navigation headers for
+            extension Threads requests; it blocks nothing and never adds
+            cookies. The extension does not request cookies, history, tabs,
+            webRequest or storage.
           </p>
           <p>
             It does not read or export cookies, does not use a UniFetch media
@@ -312,11 +327,16 @@ async function copySettingsUrl() {
             </li>
             <li>
               <strong>No toolbar icon</strong>: open the extensions menu and pin
-              UniFetch Instagram.
+              UniFetch.
             </li>
             <li>
               <strong>“Extension reload required”</strong>: reload or rebuild
               the extension after a manual update.
+            </li>
+            <li>
+              <strong>Threads access denied</strong>: allow
+              <code>www.threads.com</code> for UniFetch and retry; Instagram
+              does not need this permission.
             </li>
             <li>
               <strong>Unsupported Story</strong>: only
@@ -358,10 +378,14 @@ async function copySettingsUrl() {
           </li>
         </ul>
         <p>
-          Supported content is limited to authenticated Instagram Post, Carousel
-          and Reel downloads, plus Stories with an explicit Story ID.
-          Username-only Stories, Highlights and Story enumeration are not
-          supported and fail closed. See the
+          Supported content includes authenticated Instagram Post, Carousel and
+          Reel downloads, plus Stories with an explicit Story ID, and
+          public-only Threads images, native video, carousels, tested Giphy GIFs
+          and official
+          <code>/share/</code> links. Username-only Stories, Highlights and
+          Story enumeration are not supported and fail closed. Threads profiles,
+          private/login-required content, <code>/t/</code> links and non-post
+          share destinations are not supported. See the
           <RouterLink to="/">Web/PWA</RouterLink> for public-link downloads.
         </p>
       </section>

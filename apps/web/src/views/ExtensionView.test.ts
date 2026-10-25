@@ -50,7 +50,7 @@ describe('extension installation route', () => {
       'Enable Developer mode',
       'Load unpacked',
       'Select the folder containing manifest.json',
-      'Open Instagram and sign in normally',
+      'Open Instagram or a public Threads post',
     ]) {
       expect(text).toContain(step);
     }
@@ -64,10 +64,16 @@ describe('extension installation route', () => {
     const { text } = await renderInstallPage();
     expect(text).toContain('UniFetch Web/PWA');
     expect(text).toContain('Public Post, Carousel and Reel metadata');
-    expect(text).toContain('No Instagram login required');
+    expect(text).toContain('No Instagram or Threads login required');
     expect(text).toContain('Authenticated Post, Carousel and Reel downloads');
     expect(text).toContain(
       'Stories only when the link already contains an explicit Story ID',
+    );
+    expect(text).toContain(
+      'Public Threads image, video, carousel and GIF downloads',
+    );
+    expect(text).toContain(
+      'Optional threads.com permission requested only for Threads links',
     );
   });
 
@@ -84,6 +90,9 @@ describe('extension installation route', () => {
     expect(text).toContain(
       'Installing it does not grant access to content you cannot already view.',
     );
+    expect(text).toContain('declarativeNetRequestWithHostAccess');
+    expect(text).toContain('https://www.threads.com/*');
+    expect(text).toContain('Threads access denied');
     expect(html).not.toMatch(/\bany Story\b/i);
     expect(html).not.toMatch(/\ball Stories\b/i);
     expect(html).not.toContain('Firefox');
