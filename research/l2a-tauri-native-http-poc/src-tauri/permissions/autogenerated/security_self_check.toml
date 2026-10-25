@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-security-self-check"
+description = "Enables the security_self_check command without any pre-configured scope."
+commands.allow = ["security_self_check"]
+
+[[permission]]
+identifier = "deny-security-self-check"
+description = "Denies the security_self_check command without any pre-configured scope."
+commands.deny = ["security_self_check"]

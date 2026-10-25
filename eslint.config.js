@@ -10,6 +10,9 @@ export default ts.config(
       '**/.wrangler/**',
       'artifacts/**',
       'coverage/**',
+      // Isolated research PoCs have their own typecheck/test entry points and
+      // generate Rust target artifacts that are not JavaScript sources.
+      'research/**',
     ],
   },
   js.configs.recommended,

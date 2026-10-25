@@ -1,0 +1,206 @@
+{
+  "passed": 40,
+  "failed": 0,
+  "checks": [
+    {
+      "name": "media_https_only",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_file_scheme",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_javascript_scheme",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_data_scheme",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_loopback_ip",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_localhost",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_metadata_endpoint",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_private_10",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_private_192",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_unlisted_host",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_lookalike_host",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_userinfo",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_custom_port",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_fragment",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_worker_origin",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_pages_origin",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "media_accepts_audited_cdn",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "media_accepts_fbcdn",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "shortcode_traversal",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "shortcode_whitespace",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "shortcode_overlong",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "shortcode_url",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "shortcode_slash",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "shortcode_query",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "shortcode_accepts_valid",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "username_rejects_traversal",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "username_rejects_url",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "username_accepts_valid",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "threads_redirect_cross_origin",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "threads_redirect_http",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "threads_redirect_wrong_shortcode",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "threads_redirect_login",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "threads_redirect_noop",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "threads_redirect_alias",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "instagram_url_is_constructed",
+      "passed": true,
+      "detail": "fixed_origin"
+    },
+    {
+      "name": "threads_url_is_constructed",
+      "passed": true,
+      "detail": "fixed_origin"
+    },
+    {
+      "name": "oversized_content_length",
+      "passed": true,
+      "detail": "rejected"
+    },
+    {
+      "name": "bounded_content_length",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "diagnostics_redaction",
+      "passed": true,
+      "detail": "sanitized"
+    },
+    {
+      "name": "error_redaction",
+      "passed": true,
+      "detail": "sanitized"
+    }
+  ]
+}

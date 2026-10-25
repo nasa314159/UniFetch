@@ -1,0 +1,37 @@
+{
+  "name": "unifetch-l2a-poc",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@12.4.2",
+  "description": "L2A isolated Tauri v2 native HTTP local resolver proof of concept",
+  "scripts": {
+    "dev": "vite --port 1420 --strictPort",
+    "build": "vue-tsc --noEmit -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "tauri": "tauri",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build --no-bundle",
+    "rust:test": "cargo test --manifest-path src-tauri/Cargo.toml",
+    "rust:fmt": "cargo fmt --manifest-path src-tauri/Cargo.toml -- --check",
+    "rust:clippy": "cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings",
+    "live:evidence": "node scripts/live-evidence.mjs",
+    "security": "cargo run --manifest-path src-tauri/Cargo.toml -- --self-test security evidence/security.json"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "2.12.4",
+    "vue": "3.5.44",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.12.4",
+    "@types/node": "^24.10.0",
+    "@vitejs/plugin-vue": "6.0.10",
+    "typescript": "5.9.3",
+    "vite": "7.3.7",
+    "vitest": "3.2.4",
+    "vue-tsc": "3.1.1"
+  }
+}

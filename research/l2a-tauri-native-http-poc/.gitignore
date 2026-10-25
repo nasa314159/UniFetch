@@ -1,0 +1,10 @@
+node_modules/
+dist/
+evidence/*
+!evidence/README.md
+!evidence/summary.json
+!evidence/security.json
+src-tauri/target/
+src-tauri/gen/
+*.local
+.DS_Store

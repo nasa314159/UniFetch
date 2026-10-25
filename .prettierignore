@@ -1,0 +1,9 @@
+# Isolated research PoCs: generated Rust/Android artifacts and downloaded
+# evidence are not source files. PoC source is checked explicitly by its own
+# build/test entry points.
+research/**/src-tauri/target/
+research/**/src-tauri/gen/
+research/**/evidence/
+research/**/node_modules/
+research/**/dist/
+research/**/pnpm-lock.yaml

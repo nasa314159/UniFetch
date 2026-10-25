@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-resolve-instagram"
+description = "Enables the resolve_instagram command without any pre-configured scope."
+commands.allow = ["resolve_instagram"]
+
+[[permission]]
+identifier = "deny-resolve-instagram"
+description = "Denies the resolve_instagram command without any pre-configured scope."
+commands.deny = ["resolve_instagram"]

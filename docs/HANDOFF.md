@@ -871,10 +871,73 @@ Instagram extension 既有檔名為 `<username>_<caption-snippet>[_NN].<ext>`（
 
 ---
 
-## 19. 相關文件
+## 19. L2A Tauri 原生 HTTP 本機解析 PoC（2026-10-25）
+
+### 19.1 結論
+
+- **L2A 狀態：CONDITIONAL GO（有條件通過）**。桌面 native core 已用真實網路完成公開單圖 Instagram/Threads 取得、既有 parser 解析、原生下載與存檔；Android 只完成建置，runtime **NOT VERIFIED**。
+- 分支：`research/l2a-tauri-native-http-poc`，自 `main`（`44086be`）建立，並只 cherry-pick L1 的 docs-only commit `f9764ee`。
+- 完整英文報告：`docs/l2a-tauri-native-http-poc.md`。
+- PoC 位於 `research/l2a-tauri-native-http-poc/`，有獨立的 `pnpm-workspace.yaml` 與 lockfile，**不屬於** production pnpm workspace。
+- 本輪**沒有**修改 Web/PWA、Resolver Worker、Chromium Extension v0.3.0、production 環境變數或已發佈 release；`opencode.jsonc` 保持未追蹤。
+- 為避免 root lint/format 掃到 PoC 的 Rust target，`eslint.config.js` 增加 `research/**` ignore，並新增 `.prettierignore` 排除 PoC 的生成物；production 行為未變。
+
+### 19.2 已完成
+
+- 最小 Tauri v2 + Vue 本機 UI；Rust `reqwest`（rustls）原生 HTTPS；只有五個 command：`resolve_instagram`、`resolve_threads`、`save_media`、`security_self_check`、`app_info`。
+- Instagram：固定 bootstrap + 固定 GraphQL profile；只帶 ephemeral `X-CSRFToken`，**不送 Cookie/Authorization**；raw JSON 交回既有 `parseInstagramMediaResponse` / `normalizeInstagramMedia`。
+- Threads：固定 canonical SSR URL；最多一次同 origin、同 shortcode 的 username alias redirect；HTML 交回既有 `parseThreadsSsrHtml` / `normalizeThreadsMedia`，publisher 仍精確比對。
+- 原生下載與儲存：HTTPS CDN allowlist（`*.cdninstagram.com`、`*.fbcdn.net`）、最多 3 次 allowlisted redirect、25 MiB 上限、JPEG/PNG/WebP/GIF signature 檢查、app data dir、檔名 sanitize、temp+rename、exists/nonempty、SHA-256。
+- 診斷只含 stage/outcome/status/bytes/elapsed/static detail；不含 URL、query、header、cookie、token 或 response body。`PocError` 欄位全是 `&'static str`。
+- 40 項本機安全檢查全數通過；7 項 Tauri mock-IPC 測試通過，包含 remote origin 不能呼叫 local command、未註冊 `plugin:fs|...` 被拒絕。
+- Android debug/release APK 建置成功；release manifest `usesCleartextTraffic=false`，只有 `INTERNET` permission。
+
+### 19.3 實測結果（desktop native core）
+
+| 平台      | 結果                                                                                                                                                                                                                       |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Instagram | bootstrap 200、CSRF present、GraphQL 200 JSON 22,419 bytes；既有 parser 接受為單圖 1125×1406（`lastlineofdefense`）；下載 607,762 bytes JPEG，SHA-256 `ab64fabfab94512cb020046ec81e8266a9cfa47a5a8de6d03566084cb6dba829`。 |
+| Threads   | SSR 200 HTML 834,105 bytes、`redirected=false`；既有 parser 接受為單圖 1220×1412（`threads`）；下載 168,144 bytes JPEG，SHA-256 `e722063facc46762dc981f14f59bfb508af997483e8018c4b9141952f0de387a`。                       |
+
+- 兩個路徑都**沒有**送 Cookie/Authorization，**沒有**連 Cloudflare Worker。
+- 證據在 `research/l2a-tauri-native-http-poc/evidence/`：sanitized `summary.json` 與 `security.json` 已 commit；raw responses、parser 產生的 signed URL 檔與 `downloads/*.jpg` 仍 gitignored。
+- 這是單一公開樣本、單一網路環境的結果；不能證明長期穩定、rate-limit 行為或 Android egress 行為。
+- 設計前的少量手動 probe 中，Instagram 無 CSRF header 曾回 403；PoC 因此保留固定 bootstrap/CSRF，但只送 `X-CSRFToken`，不送 anonymous cookie jar。此差異是否穩定，留待 L2B 驗證。
+
+### 19.4 Android 狀態
+
+- 工具鏈：Android SDK 35/36/37、build-tools 36.0.0、NDK `27.0.12077973`、JDK 25.0.2（Android Studio JBR）、Rust `aarch64-linux-android`（其他 Android targets 也已安裝）。
+- debug APK：172 MiB（未 strip，`debuggable=true`，debug cleartext=true），SHA-256 `8e7c62ba9dde9465380acbe792da33f74a6cced7b7dab51907d6dabcc2582d77`。
+- release unsigned APK：16 MiB（strip、cleartext=false），SHA-256 `7e5fe47f7c219b04c736aee0dc0b3d740edf0e61128ca23c79fa78ba47a92738`。
+- **沒有連接裝置、沒有 AVD**；Android runtime **NOT VERIFIED**，只能算 **BUILD-ONLY**。不可用 APK 建置成功推論 Android 可解析或可存檔。
+- 手動裝置測試步驟見報告第 5.4 節。若 Android 遇到 Instagram 401/403/challenge，記錄精確 stage 後停止；不要加 retry loop、proxy rotation、fingerprint spoofing、CAPTCHA solving 或 cookie 匯出。
+
+### 19.5 未驗證／限制
+
+- Android runtime、Android 網路 egress（Wi-Fi/行動網路）、Android 實際檔案儲存。
+- Desktop 真正的 Tauri WebView GUI/IPC 未啟動（依桌面安全限制）；桌面證據是 native core headless self-test + Tauri mock-IPC，不是 GUI 點擊。
+- Threads live username alias redirect 未觀察到；由 unit/frontend 測試覆蓋 accept/reject。
+- Instagram `doc_id`/app ID profile 是上游不穩定實作細節，可能隨時變動。
+- no-Cookie CSRF-only 只有單次成功觀測；production Worker 目前仍使用 anonymous cookie jar。
+- 單圖以外（carousel/video/GIF）、登入、share intent、MediaStore/gallery、背景下載、iOS 均未做。
+- 法律/ToS/商店政策未審查；release APK 未簽章。
+
+### 19.6 下一個里程碑
+
+- **不要自動開始 L2B。**
+- L2B 第一步應是 Android 實機/模擬器 runtime 驗證：安裝 debug APK、解析兩個樣本、存檔、驗證 bytes/signature/SHA-256、記錄 diagnostics 與 origins；Wi-Fi 與行動網路各測一次。
+- 再進行低量多樣本（例如每平台 5 篇公開單圖）驗證 parser/profile 穩定度與 rate limit；不得 crawl 或枚舉。
+- L2B 仍應 public-only、單圖、app-private 儲存；**不要**把 authenticated Instagram WebView bridge、cookie 分享或 remote IPC 放進 L2B，那是另一個里程碑。
+- 需要獨立安全審查、法律/政策審查、release signing/update channel，以及 JDK 17/21 的可重現 Android build。
+
+---
+
+## 20. 相關文件
 
 - `README.md` — 產品與快速開始
 - `docs/l1-local-first-resolver-feasibility.md` — L1 本機優先解析可行性報告（英文）
+- `docs/l2a-tauri-native-http-poc.md` — L2A Tauri 原生 HTTP PoC 報告（英文）
+- `research/l2a-tauri-native-http-poc/README.md` — L2A PoC 建置、測試與 Android 手動驗證步驟
 - `docs/supported-content.md` — 各平台／runtime 能力矩陣
 - `docs/architecture.md` — 模組邊界與資料流
 - `docs/privacy-model.md` — 隱私與信任邊界

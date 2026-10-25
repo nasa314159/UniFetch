@@ -1,0 +1,27 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["vite/client", "node"],
+    "baseUrl": ".",
+    "paths": {
+      "@unifetch/core": ["../../packages/core/src/index.ts"],
+      "@unifetch/meta-resolver/instagram": [
+        "../../packages/meta-resolver/src/instagram/index.ts"
+      ],
+      "@unifetch/meta-resolver/threads": [
+        "../../packages/meta-resolver/src/threads/index.ts"
+      ],
+      "@unifetch/downloader/filename": [
+        "../../packages/downloader/src/filename.ts"
+      ]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "src/**/*.vue",
+    "tests/**/*.ts",
+    "vite.config.ts",
+    "vitest.config.ts"
+  ]
+}

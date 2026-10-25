@@ -1,0 +1,14 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Local trusted UI only. No remote URL capability and no plugin permissions.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "allow-resolve-instagram",
+    "allow-resolve-threads",
+    "allow-save-media",
+    "allow-security-self-check",
+    "allow-app-info"
+  ]
+}

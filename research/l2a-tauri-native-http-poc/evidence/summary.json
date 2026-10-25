@@ -1,0 +1,213 @@
+{
+  "generatedAt": "2026-10-25T05:29:39.390Z",
+  "milestone": "L2A",
+  "liveNetworkEnabled": true,
+  "boundedRequestPolicy": "One Instagram bootstrap + one GraphQL request; one Threads post request; one media request per platform; no retry loops.",
+  "posts": {
+    "instagram": {
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "bootstrapStatus": 200,
+      "csrfFound": true,
+      "shortcode": "DPCM9i1iTOx",
+      "kind": "post",
+      "canonicalUrl": "https://www.instagram.com/p/DPCM9i1iTOx/",
+      "diagnostics": [
+        {
+          "stage": "INSTAGRAM_BOOTSTRAP_REQUEST",
+          "outcome": "ok",
+          "status": 200,
+          "elapsedMs": 291
+        },
+        {
+          "stage": "INSTAGRAM_BOOTSTRAP_RESPONSE",
+          "outcome": "ok",
+          "status": 200,
+          "elapsedMs": 291
+        },
+        {
+          "stage": "INSTAGRAM_CSRF_EXTRACTION",
+          "outcome": "ok",
+          "status": 200,
+          "elapsedMs": 291,
+          "detail": "anonymous_csrf_present"
+        },
+        {
+          "stage": "INSTAGRAM_COOKIE_HEADER",
+          "outcome": "ok",
+          "elapsedMs": 291,
+          "detail": "not_sent"
+        },
+        {
+          "stage": "INSTAGRAM_GRAPHQL_REQUEST",
+          "outcome": "ok",
+          "status": 200,
+          "elapsedMs": 242
+        },
+        {
+          "stage": "INSTAGRAM_GRAPHQL_RESPONSE",
+          "outcome": "ok",
+          "status": 200,
+          "elapsedMs": 242
+        },
+        {
+          "stage": "INSTAGRAM_GRAPHQL_BODY",
+          "outcome": "ok",
+          "status": 200,
+          "bytes": 22419,
+          "elapsedMs": 243
+        }
+      ]
+    },
+    "threads": {
+      "status": 200,
+      "contentType": "text/html; charset=\"utf-8\"",
+      "requestedUsername": "threads",
+      "requestedShortcode": "DNgrJ8UyTAF",
+      "finalUsername": "threads",
+      "finalShortcode": "DNgrJ8UyTAF",
+      "finalUrl": "https://www.threads.com/@threads/post/DNgrJ8UyTAF/",
+      "redirected": false,
+      "htmlBytes": 834105,
+      "diagnostics": [
+        {
+          "stage": "THREADS_POST_REQUEST",
+          "outcome": "ok",
+          "status": 200,
+          "elapsedMs": 484
+        },
+        {
+          "stage": "THREADS_POST_RESPONSE",
+          "outcome": "ok",
+          "status": 200,
+          "elapsedMs": 484
+        },
+        {
+          "stage": "THREADS_COOKIE_HEADER",
+          "outcome": "ok",
+          "elapsedMs": 484,
+          "detail": "not_sent"
+        },
+        {
+          "stage": "THREADS_CONTENT_TYPE",
+          "outcome": "ok",
+          "status": 200,
+          "elapsedMs": 484,
+          "detail": "html"
+        },
+        {
+          "stage": "THREADS_BODY",
+          "outcome": "ok",
+          "status": 200,
+          "bytes": 834105,
+          "elapsedMs": 1737
+        }
+      ]
+    }
+  },
+  "parser": {
+    "instagram": {
+      "platform": "instagram",
+      "kind": "image",
+      "canonicalUrl": "https://www.instagram.com/p/DPCM9i1iTOx/",
+      "authorUsername": "lastlineofdefense",
+      "captionLength": 581,
+      "assetCount": 1,
+      "assets": [
+        {
+          "type": "image",
+          "width": 1125,
+          "height": 1406,
+          "suggestedFilename": "instagram_DPCM9i1iTOx.jpg"
+        }
+      ],
+      "trace": {
+        "processedLocally": true,
+        "remoteProxyUsed": false,
+        "credentialsExported": false,
+        "network": [
+          {
+            "origin": "https://www.instagram.com",
+            "purpose": "metadata"
+          }
+        ],
+        "metadataResolverUsed": false,
+        "mediaProxyUsed": false
+      }
+    },
+    "threads": {
+      "platform": "threads",
+      "kind": "image",
+      "canonicalUrl": "https://www.threads.com/@threads/post/DNgrJ8UyTAF/",
+      "authorUsername": "threads",
+      "captionLength": 284,
+      "assetCount": 1,
+      "assets": [
+        {
+          "type": "image",
+          "width": 1220,
+          "height": 1412,
+          "suggestedFilename": "threads_On-web,-add-a-photo-to-a-post,.jpg"
+        }
+      ],
+      "trace": {
+        "processedLocally": true,
+        "remoteProxyUsed": false,
+        "credentialsExported": false,
+        "network": [
+          {
+            "origin": "https://www.threads.com",
+            "purpose": "metadata"
+          }
+        ],
+        "metadataResolverUsed": false,
+        "mediaProxyUsed": false
+      }
+    }
+  },
+  "saves": {
+    "instagram": {
+      "fileName": "instagram_DPCM9i1iTOx.jpg",
+      "bytes": 607762,
+      "sha256": "ab64fabfab94512cb020046ec81e8266a9cfa47a5a8de6d03566084cb6dba829",
+      "detectedType": "jpeg",
+      "mimeType": "image/jpeg",
+      "exists": true,
+      "nonEmpty": true
+    },
+    "threads": {
+      "fileName": "threads_On-web_-add-a-photo-to-a-post.jpg",
+      "bytes": 168144,
+      "sha256": "e722063facc46762dc981f14f59bfb508af997483e8018c4b9141952f0de387a",
+      "detectedType": "jpeg",
+      "mimeType": "image/jpeg",
+      "exists": true,
+      "nonEmpty": true
+    }
+  },
+  "security": {
+    "passed": 40,
+    "failed": 0
+  },
+  "stages": {
+    "nativeRequestExecuted": true,
+    "upstreamResponseReceived": true,
+    "instagramMetadataExtracted": true,
+    "instagramIdentityValidated": true,
+    "threadsMetadataExtracted": true,
+    "threadsIdentityValidated": true,
+    "instagramMediaDownloaded": true,
+    "threadsMediaDownloaded": true,
+    "instagramFileSaved": true,
+    "threadsFileSaved": true,
+    "workerContacted": false,
+    "cookieHeaderSent": false
+  },
+  "run": {
+    "fetchSucceeded": true,
+    "parserSucceeded": true,
+    "instagramSaveSucceeded": true,
+    "threadsSaveSucceeded": true,
+    "securitySucceeded": true
+  }
+}
