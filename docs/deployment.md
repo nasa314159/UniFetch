@@ -63,7 +63,7 @@ Instagram is unchanged and remains **not restored**: a production-edge diagnosti
 
 ## E1/E2 Threads local-extension candidate (2026-10-24)
 
-E1 extends the Chromium extension on branch `feat/threads-local-extension`. E2 reviewed and validated the candidate. It is **not merged and not published**. The existing `extension-v0.2.0` GitHub Release and ZIP remain the rollback baseline and must not be modified.
+E1 extends the Chromium extension on branch `feat/threads-local-extension`. E2 reviewed, validated and published v0.3.0. The existing `extension-v0.2.0` GitHub Release and ZIP remain the rollback baseline and must not be modified.
 
 - Extension source/version: `0.3.0` candidate (`apps/extension/manifest.json`, `apps/extension/package.json`).
 - Website `apps/web/src/config/extension-release.ts`: intentionally still points at the verified v0.2.0 asset.
@@ -80,6 +80,23 @@ The user's subsequent real-Chrome QA passed Threads image/video/carousel/GIF dow
 Both previously pending human gates have now passed in the user's real Chrome: native Threads **Allow and Deny**, and the corrected canonical and share URLs for the previously failing post. The remaining pre-publication check is the user's real-Chrome confirmation of the revised caption-based Threads filenames; headless tests verify the final downloader filenames but are not a substitute for that confirmation.
 
 Regression coverage uses synthetic fixtures; do not add the corrected post's live identifiers to the repository.
+
+### E2C v0.3.0 publication checkpoint (2026-10-25)
+
+| Item                               | Value                                                                          |
+| ---------------------------------- | ------------------------------------------------------------------------------ |
+| `main` fast-forward merge          | `4e0820b` (feature HEAD)                                                       |
+| Release config commit / tag target | `8cd51f8`                                                                      |
+| Tag                                | `extension-v0.3.0`                                                             |
+| GitHub Release                     | `https://github.com/nasa314159/UniFetch/releases/tag/extension-v0.3.0`         |
+| Asset                              | `unifetch-chromium-extension-v0.3.0.zip`                                       |
+| Size                               | 262,197 bytes                                                                  |
+| SHA-256                            | `7570584c9f99b07d1054ea6c1b8046c8e00405a603351e6df04a0d4ff69f32ef`             |
+| Pages deployment                   | `a2337a62-f92d-4299-b11d-b7a673dd42d2` → `https://a2337a62.unifetch.pages.dev` |
+| Canonical install page             | `https://unifetch.pages.dev/extension`                                         |
+| Rollback                           | `extension-v0.2.0` unchanged                                                   |
+
+The release asset was downloaded back from GitHub and its SHA-256/size matched. The live `/extension` page renders v0.3.0, the correct release asset, 256.1 KiB and the verified SHA-256; the deployment alias redirects to the canonical origin. The production Resolver Worker was **not** redeployed: the API contract is unchanged and the extension acquires Threads locally. The deployed Worker still returns the older `threads_<shortcode>` Threads filenames for Web/PWA downloads until its next planned deployment; this is a cosmetic lag, not a compatibility failure. v0.2.0 remains publicly available for rollback.
 
 Do not publish from the feature branch: `scripts/release-extension.mjs` accepts only `main` or `release/instagram-stable`.
 

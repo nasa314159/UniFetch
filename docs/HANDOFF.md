@@ -1,8 +1,8 @@
-# UniFetch 交接文件（Instagram 穩定期）
+# UniFetch 交接文件（Instagram + Threads 穩定期）
 
 > 語言：Traditional Chinese（繁體中文）
 > 適用對象：接手 Instagram / Threads 維護、或準備開始 Facebook 的工程師
-> 最後更新：2026-10-24（E1 Threads 本機擴充功能候選）
+> 最後更新：2026-10-25（Chromium Extension v0.3.0 已發佈）
 > 本文件是交接入口。英文的產品／隱私細節仍以 `README.md`、`docs/supported-content.md`、`docs/privacy-model.md` 為準。
 
 ---
@@ -10,13 +10,13 @@
 ## 0. 快速結論
 
 - 穩定版 Instagram 範圍：**公開 Web/PWA 的 Post / Carousel / Reel**，加上**本機 Chromium 擴充功能的登入態 Post / Carousel / Reel**，以及**URL 已含明確 media id 的 Story 圖片／影片**。
-- E1/E2 在分支 `feat/threads-local-extension` 加入 **Chromium 擴充功能的公開 Threads 貼文下載**（圖片、圖片 carousel、原生 MP4、混合 carousel、已測 Giphy GIF、官方 `/share/` 連結）。E2 已完成程式審查與 production-build 實機媒體驗證，但 **尚未合併 `main`、尚未發佈**；`extension-v0.2.0` 仍是正式回滾基準。
+- E1/E2 在分支 `feat/threads-local-extension` 加入 **Chromium 擴充功能的公開 Threads 貼文下載**（圖片、圖片 carousel、原生 MP4、混合 carousel、已測 Giphy GIF、官方 `/share/` 連結）。E2C 已將分支 fast-forward 合併到 `main` 並發佈 `extension-v0.3.0`；`extension-v0.2.0` 仍是正式回滾基準。
 - Threads 擴充功能路徑是 **public-only**：所有 Threads metadata 請求使用 `credentials: 'omit'`，不帶使用者登入態；另用窄範圍 `declarativeNetRequestWithHostAccess` session rule 補上 Threads SSR 需要的 navigation headers，請求結束即移除。
 - M9A 新增 **GitHub Releases 擴充功能 ZIP 發佈**與公開安裝頁 `/extension`。擴充功能仍未上架 Chrome Web Store，必須下載 ZIP、解壓並以開發者模式 Load unpacked；下載 ZIP 本身不會自動安裝。
 - **使用者名稱限定 Story（`/stories/<username>/`）已停用，並且是 fail-closed**：不發出請求、不掃描 DOM、不猜 ID。
 - M8B–M8D 的 Story 實驗完整保存在分支 `research/m8b-m8d-instagram-story`（snapshot commit `72c590e`）。
 - 使用者已手動回報 Instagram 登入態 Post / Carousel / Reel / explicit-id Story 通過，username-only Story 正確 fail closed。本輪自動化與 headless 驗證只涵蓋程式、測試、建置與 Threads 公開樣本；**不要把自動測試通過當成 Instagram 線上功能保證。**
-- 下一階段建議：先完成 v0.3.0 的真人工 optional permission **Deny** 與修正後 Threads post 的 real-Chrome 重測，再發佈；之後才做 Facebook 可行性分析。不要重寫 UniFetch 架構。
+- v0.3.0 的所有人工 gates 已完成。下一個新里程碑另開；不要重寫 UniFetch 架構，也不要在此步驟開始 L1/Facebook 開發。
 
 ---
 
@@ -49,7 +49,7 @@ UniFetch 是開源、隱私導向、由使用者主動觸發的社群媒體下�
 | Instagram Story（只有 username） | 不支援                                 | **不支援，fail-closed**                            |
 | Instagram Highlights             | 不支援                                 | 不支援                                             |
 | Facebook                         | 僅顯示「Coming soon」                  | 未實作                                             |
-| Threads Post（公開）             | 公開中繼資料（Resolver，T1C 正式驗證） | 公開貼文本機解析＋下載（E1 v0.3.0 候選，未發佈）   |
+| Threads Post（公開）             | 公開中繼資料（Resolver，T1C 正式驗證） | 公開貼文本機解析＋下載（v0.3.0 已發佈）            |
 | Threads `/share/<token>/`        | 單次展開後解析（T1D 正式驗證）         | 有（候選；單次 redirect 後驗證 canonical post）    |
 | Threads GIF（已測 Giphy）        | 公開中繼資料＋embed fallback           | 有（候選；保留原始 animated GIF）                  |
 
@@ -400,7 +400,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 | 分支                               | 用途                   | 狀態                                       |
 | ---------------------------------- | ---------------------- | ------------------------------------------ |
 | `main`                             | 正式基線               | `d86080a`（T1D docs），已推送 origin       |
-| `feat/threads-local-extension`     | E1/E2 Threads 擴充功能 | E2 已審查；未合併 main、未發佈             |
+| `feat/threads-local-extension`     | E1/E2 Threads 擴充功能 | 已 fast-forward 合併 main；v0.3.0 已發佈   |
 | `release/instagram-stable`         | 穩定 Instagram release | 既有 branch，**本輪未修改**                |
 | `research/m8b-m8d-instagram-story` | M8B–M8D 實驗完整保存   | snapshot `72c590e`，已推送，不併入 main    |
 | `m8a-auth-extension-poc`           | M8A PoC 歷史           | `62edb18`，已推送 origin                   |
@@ -457,7 +457,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' \
 ### 延後
 
 - Facebook。
-- Threads 擴充功能的正式 v0.3.0 發佈（E2 已完成審查與媒體實測；待人工 prompt 與 Instagram 登入態 regression）。
+- ~~Threads 擴充功能的正式 v0.3.0 發佈~~（已於 2026-10-25 完成）。
 - Story username-only 的替代方案。
 - Chrome Web Store 上架、簽章、自動更新。
 - Native runtime。
@@ -641,7 +641,7 @@ T1D 追加座標（Threads 分享連結）：
 - `resolverApiResponseSchema` 允許 `platform: 'threads'`。
 - Web client 將 canonical Threads URL 送至 Resolver；Result UI 顯示實際平台、Video/GIF/Carousel，隱私文案不再硬寫 Instagram。
 - Downloader 對 `image/gif` 保留原始 bytes 與動畫，不再轉成 JPEG；Instagram 圖片正規化行為不變。
-- `HomeView` 將 Threads 標為 public capability；Facebook 仍為 planned；T1C 當時 extension 未加入 Threads host permission（E1 之後在 feature branch 加入 optional permission，尚未發佈）。
+- `HomeView` 將 Threads 標為 public capability；Facebook 仍為 planned；T1C 當時 extension 未加入 Threads host permission；E1/E2 之後加入 optional permission，v0.3.0 已發佈。
 
 ### 16.3 正式環境已驗證
 
@@ -692,11 +692,11 @@ T1D 追加座標（Threads 分享連結）：
 
 ---
 
-## 17. E1/E2 Threads 本機擴充功能（2026-10-24，已審查、未發佈）
+## 17. E1/E2/E2C Threads 本機擴充功能（2026-10-25，v0.3.0 已發佈）
 
 ### 17.1 狀態與範圍
 
-- 分支：`feat/threads-local-extension`，從 `main` `d86080a` 開出。**E2 已完成程式審查與大部分實機驗證，並修正 username alias；尚未合併 `main`、未修改 `release/instagram-stable`、未建立 `extension-v0.3.0` tag/release。**
+- 分支：`feat/threads-local-extension`，從 `main` `d86080a` 開出，E2C 已 fast-forward 合併到 `main`（`4e0820b`）。**`extension-v0.3.0` 已建立並發佈；未修改 `release/instagram-stable`。**
 - 擴充功能原始碼版本：`0.3.0` 候選；`apps/web/src/config/extension-release.ts` 仍指向已驗證的 `v0.2.0` asset。
 - `extension-v0.2.0` ZIP、SHA-256、GitHub Release 與 `/extension` 安裝連結**完全未變**，可作為回滾基準。
 - 支援：公開 Threads 單圖、圖片 carousel、原生 MP4、混合 image/video carousel、已測 Giphy GIF、官方 `/share/<token>/`。Canonical 與 share 都沿用既有 `packages/meta-resolver/src/threads/` parser、publisher/shortcode 驗證、share-location 驗證、GIF embed fallback 與 normalizer，沒有在 extension 內重寫一套 Threads parser。
@@ -763,7 +763,7 @@ E2 的 production-build 驗證（2026-10-24）：
 - Threads 單圖、原生影片、先前測過的 carousel 與 GIF 均可下載。
 - Instagram 登入態 Post、Carousel、Reel、explicit-id Story 通過；username-only Story 正確 fail closed。
 - Threads optional permission 原生 **Allow 與 Deny 均已通過**。
-- 使用者已重測修正後的舊 username canonical URL 與 official share URL，兩者都能解析並下載正確媒體。
+- 使用者已重測修正後的舊 username canonical URL 與 official share URL，兩者都能解析並下載正確媒體；新版 caption-based 檔名也已在 real Chrome 確認。
 - 本輪自動化 gates：`pnpm test`（940 tests / 52 files）、`pnpm lint`、`pnpm typecheck`、`pnpm build`、`pnpm format:check`、`git diff --check` 全部通過。
 
 E2B 修正的實際 root cause 不是 mixed-media parser：
@@ -788,22 +788,37 @@ Instagram extension 既有檔名為 `<username>_<caption-snippet>[_NN].<ext>`（
 
 範例（合成）：`example_user_Example-caption.jpg`、`example_user_Example-caption_01.jpg`、`example_user_Example-caption_02.mp4`、`example_user_Example-caption.gif`；無 caption 時 `example_user_synthetic-code.jpg`。Instagram 檔名政策不變。
 
-### 17.7 尚未物理驗證（發佈 blocker）
+### 17.7 已完成的發佈 gates
 
-- **新版 caption-based 檔名尚未由使用者 real-Chrome 確認**：headless 測試已用 `prepareBlobDownload` 驗證 final downloader filename（image/video/mixed carousel/GIF、無 caption、emoji-only、Unicode），但依規定不宣稱使用者已看過新檔名。
+- Threads optional permission 原生 Allow 與 Deny：使用者 real Chrome 通過。
+- Threads 舊 username canonical、official share URL、same-shortcode alias：通過。
+- Threads image / video / mixed carousel / GIF 實際下載：通過。
+- Instagram 登入態 Post / Carousel / Reel / explicit-id Story：通過；username-only Story fail closed。
+- Caption-first Threads 檔名：使用者 real Chrome 通過。
 - 未驗證「登入後 Threads 才看得到的貼文」；extension 一律 `credentials: 'omit'`，這類貼文會 typed fail closed，屬預期。
 
-### 17.8 v0.3.0 發佈步驟（尚未執行）
+### 17.8 v0.3.0 發佈結果（2026-10-25，已完成）
 
-1. 在 `feat/threads-local-extension` 完成 review（E2A 已完成並修正 DNR 隔離、lease 與 prompt timeout）；重跑全部 gates。
-2. 合併到 `main`（或依政策先合併到 `release/instagram-stable`），**不要覆寫既有 tag/release**。
-3. 在乾淨的 `main` 或 `release/instagram-stable` 執行 `pnpm package:extension`，取得 `artifacts/unifetch-chromium-extension-v0.3.0.zip` 與 `.sha256`。
-4. 將 version、tag、fileName、downloadUrl、sha256、sizeBytes 更新到 `apps/web/src/config/extension-release.ts` 並 commit。
-5. 先 push，再執行 `node scripts/release-extension.mjs` 驗證；確認無誤後才 `--publish`。
-6. 從 GitHub 重新下載 asset，核對 SHA-256 與 size；再重新 build/deploy Pages，讓 `/extension` 指向 v0.3.0。
-7. 真人工 Chrome 檢查：新版 Threads 檔名（caption、無 caption、carousel index、GIF）、Threads 圖片／carousel／影片／GIF／share、Instagram Post/Reel/explicit-id Story，以及 `/stories/<username>/` fail closed。
+| 項目                               | 值                                                                     |
+| ---------------------------------- | ---------------------------------------------------------------------- |
+| Feature HEAD                       | `4e0820b`                                                              |
+| `main` fast-forward merge          | `4e0820b`                                                              |
+| Release config commit / tag target | `8cd51f8`                                                              |
+| Tag                                | `extension-v0.3.0`                                                     |
+| GitHub Release                     | `https://github.com/nasa314159/UniFetch/releases/tag/extension-v0.3.0` |
+| Asset                              | `unifetch-chromium-extension-v0.3.0.zip`                               |
+| Size                               | 262,197 bytes                                                          |
+| SHA-256                            | `7570584c9f99b07d1054ea6c1b8046c8e00405a603351e6df04a0d4ff69f32ef`     |
+| Pages deployment                   | `a2337a62-f92d-4299-b11d-b7a673dd42d2`                                 |
+| Pages alias                        | `https://a2337a62.unifetch.pages.dev`（導向 canonical）                |
+| Canonical `/extension`             | `https://unifetch.pages.dev/extension`                                 |
+| Rollback                           | `extension-v0.2.0` 未修改、仍公開                                      |
 
-回滾：保持 `extension-v0.2.0` release 不動；若 v0.3.0 有問題，將 `extension-release.ts` 指回 v0.2.0 asset 並重新部署 Pages，使用者重新下載 v0.2.0 ZIP 或保留舊 unpacked 資料夾。
+- 已從 GitHub 重新下載 asset，SHA-256 與 size 均相符；Release 為 public、非 draft/prerelease。
+- 正式網站以 `VITE_UNIFETCH_RESOLVER_URL=https://unifetch-resolver.cernmeow.workers.dev` 建置並部署到 Pages 專案 `unifetch`。
+- Live `/extension` 顯示 v0.3.0、正確 asset、256.1 KiB 與上述 SHA-256；沒有 v0.2.0 安裝資訊。
+- **Worker 未重新部署**：API contract 未變，extension 在本機取得 Threads metadata；目前 production Worker 仍回舊的 `threads_<shortcode>` 檔名給 Web/PWA，屬外觀落後，不是相容性錯誤。下次有計畫的 Worker 部署會帶上 caption-first 政策。
+- 回滾：保持 `extension-v0.2.0` release 不動；若 v0.3.0 有問題，將 `extension-release.ts` 指回 v0.2.0 asset 並重新部署 Pages。
 
 ---
 
