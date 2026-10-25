@@ -458,6 +458,11 @@ keeps the fixed bootstrap/CSRF step. The PoC sends **only** the ephemeral
 production Worker currently uses. That succeeded once on this network. This is
 a hypothesis for L2B, not a reliability claim.
 
+A 200 HTML login/challenge page would fail the JSON content-type and
+body-shape checks before parsing; a 3xx redirect is rejected; a 200 JSON
+application error is classified by the existing parser. No fallback media is
+used.
+
 Interpretation: the Cloudflare-origin 401 observation was **not reproduced**
 from this residential/macOS egress for this sample. That does not prove the 401
 is fixed or that Instagram will consistently serve this profile. It only shows
@@ -486,6 +491,10 @@ single-image post). Live run timestamp: `2026-10-25T05:29:39Z`.
 | `Cookie`/`Authorization` sent         | **No**                                       | Diagnostics `THREADS_COOKIE_HEADER: not_sent`                 |
 | Cloudflare Worker contacted           | **No**                                       | Trace origin only Threads                                     |
 | Relevant security checks passed       | Yes                                          | 40/40                                                         |
+
+A 200 login/challenge page without the exact post payload is rejected by the
+existing parser; it cannot silently select an unrelated post or fall back to
+media from another page.
 
 Interpretation: Threads public SSR acquisition works through native HTTP with
 fixed browser-like navigation headers and no credentials. The live sample did
