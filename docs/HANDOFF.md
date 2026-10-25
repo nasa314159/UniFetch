@@ -1,8 +1,8 @@
 # UniFetch 交接文件（Instagram + Threads 穩定期）
 
 > 語言：Traditional Chinese（繁體中文）
-> 適用對象：接手 Instagram / Threads 維護、或準備開始 Facebook 的工程師
-> 最後更新：2026-10-25（Chromium Extension v0.3.0 已發佈）
+> 適用對象：接手 Instagram / Threads 維護、準備開始 L2 本機優先 PoC、或準備開始 Facebook 的工程師
+> 最後更新：2026-10-25（L1 完成、Chromium Extension v0.3.0 已發佈）
 > 本文件是交接入口。英文的產品／隱私細節仍以 `README.md`、`docs/supported-content.md`、`docs/privacy-model.md` 為準。
 
 ---
@@ -16,7 +16,7 @@
 - **使用者名稱限定 Story（`/stories/<username>/`）已停用，並且是 fail-closed**：不發出請求、不掃描 DOM、不猜 ID。
 - M8B–M8D 的 Story 實驗完整保存在分支 `research/m8b-m8d-instagram-story`（snapshot commit `72c590e`）。
 - 使用者已手動回報 Instagram 登入態 Post / Carousel / Reel / explicit-id Story 通過，username-only Story 正確 fail closed。本輪自動化與 headless 驗證只涵蓋程式、測試、建置與 Threads 公開樣本；**不要把自動測試通過當成 Instagram 線上功能保證。**
-- v0.3.0 的所有人工 gates 已完成。下一個新里程碑另開；不要重寫 UniFetch 架構，也不要在此步驟開始 L1/Facebook 開發。
+- v0.3.0 的所有人工 gates 已完成。**L1 本機優先解析可行性研究已完成，結論為 CONDITIONAL GO**；完整報告見 `docs/l1-local-first-resolver-feasibility.md`。**尚未開始 L2**，需使用者明確核准。不要重寫 UniFetch 架構、不要修改 Worker/Extension，也不要在此步驟開始 L2/Facebook 開發。
 
 ---
 
@@ -823,9 +823,58 @@ Instagram extension 既有檔名為 `<username>_<caption-snippet>[_NN].<ext>`（
 
 ---
 
-## 18. 相關文件
+## 18. L1 本機優先解析可行性（2026-10-25）
+
+### 18.1 結論
+
+- **L1 狀態：CONDITIONAL GO**。技術上值得進入一個範圍很小的 L2 PoC，但**尚未**證明可做成完整產品，也**不建議**直接重寫現有架構。
+- 完整英文報告：`docs/l1-local-first-resolver-feasibility.md`。
+- 本輪**沒有**修改 Web/PWA、Resolver Worker、Chromium Extension v0.3.0，也沒有部署或發佈。Extension v0.3.0 仍是桌面登入態的正式基準。
+- `opencode.jsonc` 保持未追蹤，未提交、未刪除。
+
+### 18.2 已確認的重點
+
+1. **純瀏覽器 Web/PWA 無法解決目前的 401。** CORS、Same-Origin Policy、第三方 cookie 限制與 origin 隔離，讓 `unifetch.pages.dev` 無法讀取 Instagram 的登入態回應；Service Worker 不能攔截其他 origin 的回應；iframe 不能跨 origin 注入；WebAssembly 不會繞過 CORS。PWA 仍可本機解析、預覽、下載，但公開中繼資料仍需要 Worker 或 CORS 可讀的端點。
+2. **Chromium Extension v0.3.0 是已驗證的桌面本機參考。** 它的能力來自 host permissions、使用者瀏覽器 session、background service worker、ISOLATED/MAIN content script、瀏覽器原生下載與窄範圍 DNR；這些不是一般 Web 平台能力，也不能直接搬到行動版 Safari/Chrome。
+3. **Tauri v2 的外部頁面 IPC 比先前手動實驗成熟。** Tauri 2.12.5 會把 IPC 初始化腳本注入外部 top-level 頁面，導航/重新載入後會重跑；remote origin 只有在 capability 明確以 `remote.urls` 授權時才能呼叫自訂 command，否則預設拒絕。`invoke` 本身不是問題，問題是登入流程、cookie/session 分享、行動版檔案匯出、share intent 與發佈政策仍需自行橋接。
+4. **Tauri 沒有現成的高階 external-page bridge。** 官方 plugin 是一般用途且有權限 scope；`tauri-plugin-http` 使用自己的 cookie jar，不會自動共用 WebView cookie；`Webview::cookies()` 在 Android 回傳空值；`on_download` 在 Android WRY 原始碼中沒有對應 handler。這些都必須在 L2 用小型、可審查的原生程式碼補上。
+5. **行動版發佈政策是關鍵限制。** Apple App Review 5.2.3 明確限制未經授權從第三方來源儲存/下載媒體；Google Play 的 IP 政策也針對未經授權下載。Android APK 以 GitHub Releases 側載可行，與現有 extension ZIP 模式一致；iOS App Store 對這類 app 風險很高，**不建議在 L2 追求 iOS 上架**。
+6. **建議架構是組合式，不是單一 universal binary：**
+   - 保留 Chromium Extension v0.3.0（桌面登入態）。
+   - 保留 PWA + Worker（公開內容、Android Share Target、iOS Shortcut）。
+   - 以 **Tauri v2 Android-first Local Session Shell** 作為新的本機優先候選；桌面版可選；iOS 先維持 PWA + Shortcut。
+   - Tauri 的公開內容優先用 Rust 原生 HTTP；需要登入態時，才開精確貼文 WebView，注入 same-origin fetch，將有界 JSON 交回 Rust/本機 parser；不讀取、不匯出 cookie。
+   - Worker 只作為公開內容的 optional fallback，不成為 Tauri 的主要 resolver，也不新增憑證或媒體代理。
+
+### 18.3 尚未驗證／L2 必須回答
+
+- Instagram 在 Android WebView、WKWebView、WebView2、WebKitGTK 中是否允許正常登入，還是會出現 challenge／unsupported browser。
+- 注入腳本的 same-origin GraphQL fetch 是否穩定取得與 extension 相同的 metadata。
+- 住宅/行動網路原生 HTTP 是否穩定避開 Cloudflare-origin 的 401；目前只有單次觀測，不能視為保證。
+- 登入態媒體 CDN URL 是否需要 cookie；原生下載是否可直接取得 bytes。
+- Tauri `remote.urls` 的 URLPattern 是否在每個平台都正確匹配完整貼文路徑，特別是 SPA 導航後。
+- Android MediaStore、iOS Photos add-only、Android `ACTION_SEND`、iOS Share Extension/Shortcut 的實際可行性與摩擦。
+- 行動版背景/暫停、WebView process termination、下載續傳與 session 保留。
+- App Store/Play 政策與 Instagram/Threads 條款的法律/產品風險；這不是程式測試能完全回答的問題。
+
+### 18.4 下一個里程碑
+
+- **不要直接開始 L2 產品實作。** 先取得使用者對 L1 報告與建議架構的明確核准。
+- 若核准，開獨立分支 `research/l2-tauri-local-poc`，只做最小 PoC：
+  1. Tauri 2.12.x + Vue 本機 UI。
+  2. 公開 Instagram 單圖：Rust 原生 HTTP + 既有 parser。
+  3. 公開 Threads 單圖：Rust 原生 HTTP + 既有 Threads parser。
+  4. 登入態 Instagram 單圖：精確貼文 WebView + same-origin fetch + 既有 parser。
+  5. Android MediaStore 儲存、Android share intent、session clear。
+  6. 遠端 command allowlist、導航驗證、偽造 payload、cookie 不外洩等安全測試。
+- PoC 成功條件、停止條件與 Go/No-Go 已寫在報告第 12–13 節。PoC 不得修改 production Worker、Pages、Extension，也不得部署或發佈。
+
+---
+
+## 19. 相關文件
 
 - `README.md` — 產品與快速開始
+- `docs/l1-local-first-resolver-feasibility.md` — L1 本機優先解析可行性報告（英文）
 - `docs/supported-content.md` — 各平台／runtime 能力矩陣
 - `docs/architecture.md` — 模組邊界與資料流
 - `docs/privacy-model.md` — 隱私與信任邊界
